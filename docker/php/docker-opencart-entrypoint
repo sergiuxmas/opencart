@@ -6,6 +6,78 @@ echo "--- OpenCart initialization ---"
 APP_USER="${PHP_UNAME:-www-data}"
 
 # ================================================================
+# STEP 0: BOOTSTRAP /var/www/upload FROM BAKED RELEASE
+# ================================================================
+# The host `upload/` tree (master branch) is in a broken mid-migration
+# state (mixed .html/.twig templates, invalid Twig syntax). To keep the
+# host untouched (config-only change), we mount a named volume onto
+# /var/www/upload in docker-compose and populate it here from a working
+# OpenCart release baked into the image at ${OPENCART_DIST_DIR}.
+#
+# Re-bootstrap conditions (any of):
+#   * volume is empty
+#   * version marker differs from the image's baked version
+#   * essential template is missing (sanity check)
+# Users can force a refresh with: docker volume rm opencart_opencart-upload
+OPENCART_DIST_DIR="${OPENCART_DIST_DIR:-/opt/opencart-dist}"
+UPLOAD_DIR="/var/www/upload"
+VERSION_MARKER="${UPLOAD_DIR}/.dist-version"
+DIST_VERSION_FILE="${OPENCART_DIST_DIR}/.dist-version"
+
+needs_bootstrap=0
+if [ -d "${OPENCART_DIST_DIR}/upload" ]; then
+    if [ -z "$(ls -A "${UPLOAD_DIR}" 2>/dev/null)" ]; then
+        needs_bootstrap=1
+    elif [ ! -f "${UPLOAD_DIR}/index.php" ]; then
+        needs_bootstrap=1
+    elif [ ! -f "${UPLOAD_DIR}/catalog/view/template/common/footer.twig" ]; then
+        needs_bootstrap=1
+    elif [ -f "${DIST_VERSION_FILE}" ] && [ -f "${VERSION_MARKER}" ] && \
+         [ "$(cat "${DIST_VERSION_FILE}")" != "$(cat "${VERSION_MARKER}")" ]; then
+        needs_bootstrap=1
+    fi
+
+    if [ "$needs_bootstrap" = "1" ]; then
+        echo "--- STEP 0: Bootstrapping ${UPLOAD_DIR} from ${OPENCART_DIST_DIR}/upload (version $(cat "${DIST_VERSION_FILE}" 2>/dev/null || echo unknown)) ---"
+        mkdir -p "${UPLOAD_DIR}"
+        # First-boot detection: empty volume => full copy, no exclusions,
+        # so required dirs like system/storage/{logs,cache,session,vendor,...}
+        # are created. On subsequent version upgrades, preserve runtime data.
+        if [ ! -f "${UPLOAD_DIR}/index.php" ]; then
+            rsync -a "${OPENCART_DIST_DIR}/upload/" "${UPLOAD_DIR}/"
+        else
+            rsync -a --delete \
+                --exclude '/config.php' \
+                --exclude '/admin/config.php' \
+                --exclude '/install.lock' \
+                --exclude '/image/' \
+                --exclude '/system/storage/logs/' \
+                --exclude '/system/storage/cache/' \
+                --exclude '/system/storage/session/' \
+                --exclude '/system/storage/download/' \
+                --exclude '/system/storage/upload/' \
+                "${OPENCART_DIST_DIR}/upload/" "${UPLOAD_DIR}/"
+        fi
+        # Ensure runtime directories exist
+        mkdir -p \
+            "${UPLOAD_DIR}/system/storage/logs" \
+            "${UPLOAD_DIR}/system/storage/cache" \
+            "${UPLOAD_DIR}/system/storage/session" \
+            "${UPLOAD_DIR}/system/storage/download" \
+            "${UPLOAD_DIR}/system/storage/upload" \
+            "${UPLOAD_DIR}/image"
+        if [ -f "${DIST_VERSION_FILE}" ]; then
+            cp "${DIST_VERSION_FILE}" "${VERSION_MARKER}"
+        fi
+        echo "--- STEP 0: Bootstrap complete ---"
+    else
+        echo "--- STEP 0: ${UPLOAD_DIR} already provisioned (version $(cat "${VERSION_MARKER}" 2>/dev/null || echo unknown)), skipping ---"
+    fi
+else
+    echo "--- STEP 0: No baked release at ${OPENCART_DIST_DIR}/upload, skipping bootstrap ---"
+fi
+
+# ================================================================
 # STEP 1: SYNC ENVIRONMENT VARIABLES TO EXISTING CONFIGS
 # ================================================================
 

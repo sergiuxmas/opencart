@@ -10,6 +10,9 @@ services:
       - "${HTTP_EXPOSE_PORT:-80}:${HTTP_PORT:-80}"
     volumes:
       - .:/var/www
+      # Overlay the broken host upload/ with a working OpenCart release
+      # (populated by the php container from /opt/opencart-dist at startup).
+      - opencart-upload:/var/www/upload
     depends_on:
       php:
         condition: service_healthy
@@ -88,15 +91,19 @@ services:
       - DB_PREFIX=${DB_PREFIX:-oc_}
     volumes:
       - .:/var/www
+      # Overlay the broken host upload/ with a working OpenCart release,
+      # baked into the image at /opt/opencart-dist. The entrypoint bootstraps
+      # this named volume on first boot. Host upload/ is never modified.
+      - opencart-upload:/var/www/upload
     depends_on:
       mysql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "php-fpm -t || exit 1"]
-      interval: 1s
-      timeout: 3s
-      retries: 10
-      start_period: 10s
+      test: ["CMD", "bash", "-c", "php-fpm -t && (echo > /dev/tcp/localhost/9000) 2>/dev/null"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 15s
     deploy:
       resources:
         limits:
@@ -246,6 +253,7 @@ volumes:
   mysql-data:
   postgres-data:
   redis-data:
+  opencart-upload:
 
 networks:
   opencart:

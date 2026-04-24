@@ -9,7 +9,24 @@ ENV TZ=UTC
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Install system packages
-RUN apt-get update && apt-get install -y supervisor cron tzdata
+RUN apt-get update && apt-get install -y supervisor cron tzdata curl rsync ca-certificates
+
+# ----------------------------------------------------------------------
+# Bake a known-working OpenCart release into the image at /opt/opencart-dist
+# so we can overlay it onto the bind-mounted project at runtime when the
+# local `upload/` tree is broken (mid-migration on master, mixed .html/.twig
+# templates with invalid Twig syntax). The host `upload/` is NEVER modified.
+# Override the pinned version with build arg OPENCART_DIST_VERSION.
+# ----------------------------------------------------------------------
+ARG OPENCART_DIST_VERSION=4.1.0.3
+ENV OPENCART_DIST_VERSION=${OPENCART_DIST_VERSION}
+ENV OPENCART_DIST_DIR=/opt/opencart-dist
+RUN mkdir -p "${OPENCART_DIST_DIR}" && \
+    curl -fsSL "https://codeload.github.com/opencart/opencart/tar.gz/refs/tags/${OPENCART_DIST_VERSION}" \
+        -o /tmp/opencart-dist.tgz && \
+    tar -xzf /tmp/opencart-dist.tgz -C "${OPENCART_DIST_DIR}" --strip-components=1 && \
+    rm -f /tmp/opencart-dist.tgz && \
+    echo "${OPENCART_DIST_VERSION}" > "${OPENCART_DIST_DIR}/.dist-version"
 
 # Install PHP extensions
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
