@@ -81,7 +81,7 @@ services:
       - OPENCART_USERNAME=${OPENCART_USERNAME:-admin}
       - OPENCART_PASSWORD=${OPENCART_PASSWORD:-admin}
       - OPENCART_ADMIN_EMAIL=${OPENCART_ADMIN_EMAIL:-admin@example.com}
-      - OPENCART_HTTP_SERVER=${OPENCART_HTTP_SERVER:-http://localhost/}
+      - OPENCART_HTTP_SERVER=${OPENCART_HTTP_SERVER:-http://opencart.local:8080/}
       - DB_DRIVER=${DB_DRIVER:-mysqli}
       - DB_HOSTNAME=${DB_HOSTNAME:-mysql}
       - DB_USERNAME=${DB_USERNAME:-opencart}

@@ -66,23 +66,43 @@ This project includes a Docker-based environment for local development.
 > The provided `.env.docker` file is **only** for configuring the Docker Compose environment.
 > To avoid confusion with classic development workflows, this file is named `.env.docker` and placed inside the `docker` directory.
 
+### Local Hostname Setup
+
+This project is configured to run at **`http://opencart.local:8080/`**.
+You must add the hostname to your system's hosts file before starting Docker.
+
+**Linux / macOS** — add the following line to `/etc/hosts`:
+```
+127.0.0.1 opencart.local
+```
+
+**Windows (PowerShell — run as Administrator):**
+```powershell
+Add-Content -Path "$env:SystemRoot\System32\drivers\etc\hosts" -Value "`n127.0.0.1 opencart.local"
+ipconfig /flushdns
+```
+
+> [!NOTE]
+> If you see a DNS error in your browser after adding the entry, restart your browser or wait a few seconds for the flush to propagate.
+
 ### Getting Started
 
 1. Clone the repository to your local machine.
-2. Initialize the project:
+2. Add `opencart.local` to your hosts file (see [Local Hostname Setup](#local-hostname-setup) above).
+3. Initialize the project:
     ```bash
     make init
     ```
-3. Build the images:
+4. Build the images:
     ```bash
     make build
     ```
-4. Start all services:
+5. Start all services:
     ```bash
     make up
     ```
 
-After the process is complete, your OpenCart store will be available at `http://localhost`.
+After the process is complete, your OpenCart store will be available at `http://opencart.local:8080/`.
 
 ### Common Commands
 

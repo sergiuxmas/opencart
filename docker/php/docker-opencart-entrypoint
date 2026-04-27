@@ -105,7 +105,7 @@ update_config_if_changed() {
     if [ "$current_value" != "$env_value" ]; then
         echo "--- Value for '$key' in '$file' is outdated. Updating '$current_value' -> '$env_value' ---"
 
-        sed -i "s/define('$key',[ ]*'[^']*')/define('$key', '$env_value')/g" "$file"
+        sed -i "s|define('$key',[ ]*'[^']*')|define('$key', '$env_value')|g" "$file"
 
         echo "--- Updated '$key' to '$env_value' in '$file' ---"
     fi
@@ -119,6 +119,7 @@ if [ -f "$CONFIG_FILE" ]; then
     update_config_if_changed "$CONFIG_FILE" "DB_PASSWORD" "${DB_PASSWORD:-opencart}"
     update_config_if_changed "$CONFIG_FILE" "DB_DATABASE" "${DB_DATABASE:-opencart}"
     update_config_if_changed "$CONFIG_FILE" "DB_PORT" "${DB_PORT:-3306}"
+    update_config_if_changed "$CONFIG_FILE" "HTTP_SERVER" "${OPENCART_HTTP_SERVER:-http://opencart.local:8080/}"
 fi
 
 if [ -f "$ADMIN_CONFIG_FILE" ]; then
@@ -129,6 +130,7 @@ if [ -f "$ADMIN_CONFIG_FILE" ]; then
     update_config_if_changed "$ADMIN_CONFIG_FILE" "DB_PASSWORD" "${DB_PASSWORD:-opencart}"
     update_config_if_changed "$ADMIN_CONFIG_FILE" "DB_DATABASE" "${DB_DATABASE:-opencart}"
     update_config_if_changed "$ADMIN_CONFIG_FILE" "DB_PORT" "${DB_PORT:-3306}"
+    update_config_if_changed "$ADMIN_CONFIG_FILE" "HTTP_SERVER" "${OPENCART_HTTP_SERVER:-http://opencart.local:8080/}admin/"
 fi
 
 # ================================================================
@@ -154,7 +156,7 @@ if [ ! -f "install.lock" ] && [ -f "install/cli_install.php" ]; then
         --username "${OPENCART_USERNAME:-admin}" \
         --password "${OPENCART_PASSWORD:-admin}" \
         --email "${OPENCART_ADMIN_EMAIL:-admin@example.com}" \
-        --http_server "${OPENCART_HTTP_SERVER:-http://localhost/}" \
+        --http_server "${OPENCART_HTTP_SERVER:-http://opencart.local:8080/}" \
         --db_driver "${DB_DRIVER:-mysqli}" \
         --db_hostname "${DB_HOSTNAME:-mysql}" \
         --db_username "${DB_USERNAME:-opencart}" \
