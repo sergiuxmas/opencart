@@ -4,15 +4,24 @@ info:
   description: |
     OpenCart 4.x catalog, account and admin endpoints.
 
-    **Authentication flow:**
-    1. `GET /index.php?route=account/login` → extract `login_token` from response HTML
-    2. `POST /index.php?route=account/login.login&login_token={token}` → response JSON contains `customer_token`
-    3. Pass `customer_token` on every protected account request
+    > ⚠️ **URL structure note:** OpenCart routes everything through a single entry point.
+    > All catalog requests hit `http://opencart.local:8080/index.php?route=<route>`
+    > All admin requests hit `http://opencart.local:8080/admin/index.php?route=<route>`
+    > The paths below are logical names — each operation overrides the server URL to the correct base.
 
-    **Admin flow:**
-    1. `GET /admin/` → extract `login_token` from response HTML
-    2. `POST /admin/index.php?route=common/login.login&login_token={token}` → response JSON contains `user_token`
-    3. Pass `user_token` on every admin request
+    ---
+
+    ### Catalog auth flow
+    1. `GET /index.php?route=account/login` → extract `login_token` from form action in HTML
+    2. `POST /index.php?route=account/login.login&login_token={token}` → JSON response contains `redirect` URL with `customer_token`
+    3. Pass `customer_token` as query param on every protected account request
+
+    ### Admin auth flow
+    1. `GET /admin/` → extract `login_token` from form action in HTML
+    2. `POST /admin/index.php?route=common/login.login&login_token={token}` → JSON response contains `redirect` URL with `user_token`
+    3. Pass `user_token` as query param on every admin request
+
+    Both tokens are **session-scoped** — a valid PHP session cookie must accompany every request (handled automatically by Bruno's cookie jar).
   version: 4.1.0.4
 
 servers:
@@ -25,44 +34,45 @@ tags:
   - name: Account
     description: Customer registration, login and profile
   - name: Admin
-    description: Admin panel endpoints (requires admin login)
+    description: Admin panel — requires admin login first
 
 # ─────────────────────────────────────────────
-# PATHS
+# SECURITY SCHEMES
 # ─────────────────────────────────────────────
+security: []   # No global security — applied per-operation
+
 paths:
 
-  # ── CATALOG ──────────────────────────────────
-  /index.php:
+  # ── HOME ─────────────────────────────────────
+  /home:
     get:
       tags: [Catalog]
       summary: Home page
       operationId: getHomePage
+      servers:
+        - url: http://opencart.local:8080/index.php?route=common
+          description: Catalog entry point
       parameters:
-        - $ref: '#/components/parameters/RouteHome'
         - $ref: '#/components/parameters/Language'
       responses:
         '200':
-          description: HTML home page with category navigation
+          description: HTML home page with category navigation menu
 
   # ── PRODUCT CATEGORY ─────────────────────────
-  /catalog/category:
+  /product/category:
     get:
       tags: [Catalog]
       summary: Category product listing
       operationId: getCategoryPage
+      servers:
+        - url: http://opencart.local:8080/index.php?route=product
+          description: Catalog entry point
       parameters:
-        - name: route
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [product/category]
         - $ref: '#/components/parameters/Language'
         - name: path
           in: query
           required: true
-          description: Category ID (e.g. 20) or subcategory path (e.g. 20_27)
+          description: Category ID (e.g. `20`) or subcategory path (e.g. `20_27`)
           schema:
             type: string
             example: '20'
@@ -71,18 +81,15 @@ paths:
           description: HTML category page listing products
 
   # ── PRODUCT DETAIL ────────────────────────────
-  /catalog/product:
+  /product/product:
     get:
       tags: [Catalog]
       summary: Product detail page
       operationId: getProductPage
+      servers:
+        - url: http://opencart.local:8080/index.php?route=product
+          description: Catalog entry point
       parameters:
-        - name: route
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [product/product]
         - $ref: '#/components/parameters/Language'
         - name: product_id
           in: query
@@ -95,18 +102,15 @@ paths:
           description: HTML product detail page
 
   # ── SEARCH ───────────────────────────────────
-  /catalog/search:
+  /product/search:
     get:
       tags: [Catalog]
       summary: Product search
       operationId: searchProducts
+      servers:
+        - url: http://opencart.local:8080/index.php?route=product
+          description: Catalog entry point
       parameters:
-        - name: route
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [product/search]
         - $ref: '#/components/parameters/Language'
         - name: search
           in: query
@@ -122,38 +126,32 @@ paths:
   /account/register:
     get:
       tags: [Account]
-      summary: Get register page (extracts register_token)
+      summary: Get register page — extracts register_token from response HTML
       operationId: getRegisterPage
+      servers:
+        - url: http://opencart.local:8080/index.php?route=account
+          description: Catalog entry point
       parameters:
-        - name: route
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [account/register]
         - $ref: '#/components/parameters/Language'
       responses:
         '200':
-          description: HTML registration form. Extract `register_token` from form action URL.
+          description: HTML registration form. Scrape `register_token` from the form action URL.
 
   # ── REGISTER SAVE ─────────────────────────────
-  /account/register/save:
+  /account/register.save:
     post:
       tags: [Account]
-      summary: Submit registration form
+      summary: Submit registration — returns JSON redirect on success
       operationId: registerAccount
+      servers:
+        - url: http://opencart.local:8080/index.php?route=account
+          description: Catalog entry point
       parameters:
-        - name: route
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [account/register.save]
         - $ref: '#/components/parameters/Language'
         - name: register_token
           in: query
           required: true
-          description: CSRF token extracted from GET register page
+          description: CSRF token scraped from GET register page form action
           schema:
             type: string
       requestBody:
@@ -184,38 +182,32 @@ paths:
   /account/login:
     get:
       tags: [Account]
-      summary: Get login page (extracts login_token)
+      summary: Get login page — extracts login_token from response HTML
       operationId: getLoginPage
+      servers:
+        - url: http://opencart.local:8080/index.php?route=account
+          description: Catalog entry point
       parameters:
-        - name: route
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [account/login]
         - $ref: '#/components/parameters/Language'
       responses:
         '200':
-          description: HTML login form. Extract `login_token` from form action URL.
+          description: HTML login form. Scrape `login_token` from the form action URL.
 
   # ── LOGIN SUBMIT ──────────────────────────────
-  /account/login/submit:
+  /account/login.login:
     post:
       tags: [Account]
-      summary: Submit login credentials
+      summary: Submit login — returns JSON with customer_token in redirect URL
       operationId: loginAccount
+      servers:
+        - url: http://opencart.local:8080/index.php?route=account
+          description: Catalog entry point
       parameters:
-        - name: route
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [account/login.login]
         - $ref: '#/components/parameters/Language'
         - name: login_token
           in: query
           required: true
-          description: CSRF token extracted from GET login page
+          description: CSRF token scraped from GET login page form action
           schema:
             type: string
       requestBody:
@@ -226,7 +218,9 @@ paths:
               $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: JSON response
+          description: |
+            JSON response.
+            On success the `redirect` URL contains `customer_token=<value>` — save this for protected requests.
           content:
             application/json:
               schema:
@@ -251,75 +245,63 @@ paths:
   /account/account:
     get:
       tags: [Account]
-      summary: My Account page (requires customer_token)
+      summary: My Account dashboard — requires customer_token
       operationId: getAccountPage
+      security:
+        - customerToken: []
+      servers:
+        - url: http://opencart.local:8080/index.php?route=account
+          description: Catalog entry point
       parameters:
-        - name: route
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [account/account]
         - $ref: '#/components/parameters/Language'
-        - name: customer_token
-          in: query
-          required: true
-          description: Token extracted from login response redirect URL
-          schema:
-            type: string
       responses:
         '200':
-          description: HTML account dashboard (contains "Edit your account information")
+          description: HTML account dashboard. Contains "Edit your account information" when authenticated.
         '302':
-          description: Redirect to login page if customer_token is missing or invalid
+          description: Redirects to login page when customer_token is missing or invalid.
 
   # ── LOGOUT ────────────────────────────────────
   /account/logout:
     get:
       tags: [Account]
-      summary: Logout current customer
+      summary: Logout — invalidates the current customer session
       operationId: logoutAccount
+      servers:
+        - url: http://opencart.local:8080/index.php?route=account
+          description: Catalog entry point
       parameters:
-        - name: route
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [account/logout]
         - $ref: '#/components/parameters/Language'
       responses:
         '200':
-          description: HTML logout confirmation page
+          description: HTML logout confirmation page.
 
   # ── ADMIN LOGIN PAGE ──────────────────────────
-  /admin/:
+  /admin:
     get:
       tags: [Admin]
-      summary: Get admin login page (extracts admin login_token)
+      summary: Get admin login page — extracts admin login_token from response HTML
       operationId: getAdminLoginPage
-      responses:
-        '200':
-          description: HTML admin login form. Extract `login_token` from form action URL.
-
-  # ── ADMIN LOGIN SUBMIT ────────────────────────
-  /admin/login:
-    post:
-      tags: [Admin]
-      summary: Submit admin login
-      operationId: loginAdmin
       servers:
         - url: http://opencart.local:8080
+          description: Admin entry point
+      responses:
+        '200':
+          description: HTML admin login form. Scrape `login_token` from the form action URL.
+
+  # ── ADMIN LOGIN SUBMIT ────────────────────────
+  /common/login.login:
+    post:
+      tags: [Admin]
+      summary: Submit admin login — returns JSON with user_token in redirect URL
+      operationId: loginAdmin
+      servers:
+        - url: http://opencart.local:8080/admin/index.php?route=common
+          description: Admin entry point
       parameters:
-        - name: route
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [common/login.login]
         - name: login_token
           in: query
           required: true
-          description: CSRF token extracted from GET admin login page
+          description: CSRF token scraped from GET admin login page form action
           schema:
             type: string
       requestBody:
@@ -330,7 +312,9 @@ paths:
               $ref: '#/components/schemas/AdminLoginRequest'
       responses:
         '200':
-          description: JSON response
+          description: |
+            JSON response.
+            On success the `redirect` URL contains `user_token=<value>` — save this for all admin requests.
           content:
             application/json:
               schema:
@@ -346,20 +330,18 @@ paths:
                     error: "Warning: No match for Username and/or Password."
 
   # ── ADMIN PRODUCT LIST ────────────────────────
-  /admin/products:
+  /catalog/product.list:
     get:
       tags: [Admin]
-      summary: List products (admin)
+      summary: List products
       operationId: adminGetProductList
+      security:
+        - userToken: []
+      servers:
+        - url: http://opencart.local:8080/admin/index.php?route=catalog
+          description: Admin entry point
       parameters:
-        - name: route
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [catalog/product.list]
         - $ref: '#/components/parameters/Language'
-        - $ref: '#/components/parameters/UserToken'
         - name: filter_name
           in: query
           schema:
@@ -378,20 +360,18 @@ paths:
                 $ref: '#/components/schemas/ProductListResponse'
 
   # ── ADMIN CUSTOMER LIST ───────────────────────
-  /admin/customers:
+  /customer/customer.list:
     get:
       tags: [Admin]
-      summary: List customers (admin)
+      summary: List customers
       operationId: adminGetCustomerList
+      security:
+        - userToken: []
+      servers:
+        - url: http://opencart.local:8080/admin/index.php?route=customer
+          description: Admin entry point
       parameters:
-        - name: route
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [customer/customer.list]
         - $ref: '#/components/parameters/Language'
-        - $ref: '#/components/parameters/UserToken'
         - name: filter_name
           in: query
           schema:
@@ -410,29 +390,27 @@ paths:
           description: HTML customer list page
 
   # ── ADMIN DELETE CUSTOMER ─────────────────────
-  /admin/customers/delete:
+  /customer/customer.delete:
     post:
       tags: [Admin]
-      summary: Delete one or more customers (admin)
+      summary: Delete one or more customers
       operationId: adminDeleteCustomer
+      security:
+        - userToken: []
+      servers:
+        - url: http://opencart.local:8080/admin/index.php?route=customer
+          description: Admin entry point
       parameters:
-        - name: route
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [customer/customer.delete]
         - $ref: '#/components/parameters/Language'
-        - $ref: '#/components/parameters/UserToken'
       requestBody:
         required: true
         content:
           application/x-www-form-urlencoded:
             schema:
               type: object
-              required: [selected]
+              required: ["selected[]"]
               properties:
-                selected[]:
+                "selected[]":
                   type: array
                   items:
                     type: integer
@@ -447,6 +425,22 @@ paths:
 # ─────────────────────────────────────────────
 components:
 
+  securitySchemes:
+    customerToken:
+      type: apiKey
+      in: query
+      name: customer_token
+      description: |
+        Obtained from the `redirect` URL in the POST `account/login.login` response.
+        Example redirect: `...?route=account/account&customer_token=abc123`
+    userToken:
+      type: apiKey
+      in: query
+      name: user_token
+      description: |
+        Obtained from the `redirect` URL in the POST `common/login.login` response.
+        Example redirect: `...?route=common/dashboard&user_token=xyz789`
+
   parameters:
     Language:
       name: language
@@ -456,22 +450,6 @@ components:
         type: string
         default: en-gb
         example: en-gb
-
-    RouteHome:
-      name: route
-      in: query
-      required: true
-      schema:
-        type: string
-        enum: [common/home]
-
-    UserToken:
-      name: user_token
-      in: query
-      required: true
-      description: Admin session token from login response
-      schema:
-        type: string
 
   schemas:
 
@@ -502,7 +480,7 @@ components:
         agree:
           type: integer
           enum: [1]
-          description: Must be 1 (agree to terms)
+          description: Must be 1 (agree to terms and conditions)
 
     LoginRequest:
       type: object
@@ -534,7 +512,7 @@ components:
       properties:
         redirect:
           type: string
-          description: Absolute URL to redirect to after success
+          description: Absolute URL to navigate to after success
 
     LoginSuccessResponse:
       type: object
