@@ -4,9 +4,15 @@
     <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan">
       <boolProp name="TestPlan.serialize_threadgroups">true</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
-        <collectionProp name="Arguments.arguments"/>
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="extract_products" elementType="Argument">
+            <stringProp name="Argument.name">extract_products</stringProp>
+            <stringProp name="Argument.value">false</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+            <stringProp name="Argument.desc">Set to true to crawl home page + all category pages and save products.json / products.csv next to this JMX file</stringProp>
+          </elementProp>
+        </collectionProp>
       </elementProp>
-      <boolProp name="TestPlan.functional_mode">false</boolProp>
     </TestPlan>
     <hashTree>
       <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager">
@@ -54,16 +60,16 @@
         <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
       </ConfigTestElement>
       <hashTree/>
-      <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV Data Set Config" enabled="false">
+      <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV Data Set Config - Products" enabled="false">
         <stringProp name="delimiter">,</stringProp>
-        <stringProp name="fileEncoding"></stringProp>
-        <stringProp name="filename"></stringProp>
-        <boolProp name="ignoreFirstLine">false</boolProp>
+        <stringProp name="fileEncoding">UTF-8</stringProp>
+        <stringProp name="filename">products.csv</stringProp>
+        <boolProp name="ignoreFirstLine">true</boolProp>
         <boolProp name="quotedData">false</boolProp>
         <boolProp name="recycle">true</boolProp>
         <stringProp name="shareMode">shareMode.all</stringProp>
         <boolProp name="stopThread">false</boolProp>
-        <stringProp name="variableNames"></stringProp>
+        <stringProp name="variableNames">productId,path,categoryId,subcategoryId</stringProp>
       </CSVDataSet>
       <hashTree/>
       <ProxyControl guiclass="ProxyControlGui" testclass="ProxyControl" testname="HTTP(S) Test Script Recorder" enabled="true">
@@ -89,6 +95,270 @@
         <stringProp name="ProxyControlGui.content_type_exclude"></stringProp>
       </ProxyControl>
       <hashTree/>
+      <SetupThreadGroup guiclass="SetupThreadGroupGui" testclass="SetupThreadGroup" testname="Prerequisites - Extract Products">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </SetupThreadGroup>
+      <hashTree>
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Run only if extract_products=true" enabled="true">
+          <stringProp name="IfController.condition">&quot;${extract_products}&quot; == &quot;true&quot;</stringProp>
+          <boolProp name="IfController.evaluateAll">false</boolProp>
+          <boolProp name="IfController.useExpression">false</boolProp>
+        </IfController>
+        <hashTree>
+          <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Extract all products with categories" enabled="true">
+            <stringProp name="scriptLanguage">bsh</stringProp>
+            <stringProp name="script">
+// BeanShell (bsh) — pure Java interpreter, no ASM, works on any Java version including Java 25
+// Groovy 3.0.20 cannot compile scripts on Java 25 (ASM class file version mismatch)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// HTML STRUCTURES BEING PARSED
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// ── SOURCE 1: Home page  GET /index.php?route=common/home&amp;language=en-gb ──────
+//
+//   Template : upload/catalog/view/template/common/menu.html
+//   Root element parsed:
+//     &lt;nav id=&quot;menu&quot; class=&quot;navbar navbar-expand-lg bg-primary&quot;&gt;
+//       &lt;div id=&quot;navbar-menu&quot; class=&quot;collapse navbar-collapse&quot;&gt;
+//         &lt;ul class=&quot;nav navbar-nav&quot;&gt;
+//           ...category / sub-category &lt;a&gt; links...
+//         &lt;/ul&gt;
+//       &lt;/div&gt;
+//     &lt;/nav&gt;
+//
+//   Controller (common/menu.php) builds category hrefs via:
+//     $this-&gt;url-&gt;link(&apos;product/category&apos;, &apos;language=en-gb&amp;path=&apos; . $category_id)
+//     $this-&gt;url-&gt;link(&apos;product/category&apos;, &apos;language=en-gb&amp;path=&apos; . $parent_id . &apos;_&apos; . $child_id)
+//
+//   Rendered links inside &lt;nav id=&quot;menu&quot;&gt;:
+//     Top-level:  &lt;a href=&quot;...&amp;amp;path=20&quot; class=&quot;nav-link dropdown-toggle&quot;&gt;Desktops&lt;/a&gt;
+//     Sub-cat:    &lt;a href=&quot;...&amp;amp;path=20_27&quot; class=&quot;dropdown-item&quot;&gt;Mac&lt;/a&gt;
+//     &quot;See all&quot;:  &lt;a href=&quot;...&amp;amp;path=20&quot; class=&quot;dropdown-item&quot;&gt;See All Desktops&lt;/a&gt;
+//
+//   Regex:  path=([0-9_]+)
+//   &amp; is HTML-encoded as &amp;amp; in href attributes — [0-9_] matches both segments.
+//   Captures: &quot;20&quot;    → top-level    (categoryId=20, subcategoryId=null)
+//             &quot;20_27&quot; → subcategory  (categoryId=20, subcategoryId=27)
+//
+// ── SOURCE 2: Category page  GET /index.php?route=product/category&amp;path={path} ─
+//
+//   Template : upload/catalog/view/template/product/category.html
+//   Root element parsed:
+//     &lt;div id=&quot;content&quot;&gt;
+//       &lt;h1&gt;{heading}&lt;/h1&gt;
+//       ...optional subcategory refinement links...
+//       &lt;product-list sort=&quot;&quot; order=&quot;&quot;&gt;&lt;/product-list&gt;  ← WEB COMPONENT
+//     &lt;/div&gt;
+//
+//   ⚠️  IMPORTANT — TWO possible HTML sources for product IDs:
+//
+//   PATTERN A — Server-side rendered product list (product_list.html)
+//   ─────────────────────────────────────────────────────────────────
+//   Template : upload/catalog/view/template/product/product_list.html
+//   Rendered  inside &lt;product-list&gt; as server-side HTML by the PHP controller.
+//   Each product row rendered as a web component with attribute:
+//     &lt;div id=&quot;product-list&quot; class=&quot;row ...&quot;&gt;
+//       &lt;div class=&quot;col mb-3&quot;&gt;&lt;product-thumb product=&quot;40&quot;&gt;&lt;/product-thumb&gt;&lt;/div&gt;
+//       &lt;div class=&quot;col mb-3&quot;&gt;&lt;product-thumb product=&quot;41&quot;&gt;&lt;/product-thumb&gt;&lt;/div&gt;
+//     &lt;/div&gt;
+//   Regex: product-thumb product=&quot;([0-9]+)&quot;
+//
+//   PATTERN B — Product href links (thumb.html)
+//   ─────────────────────────────────────────────────────────────────
+//   Template : upload/catalog/view/template/product/thumb.html
+//   The &lt;template id=&quot;product-thumb&quot;&gt; element (client-side web component template)
+//   is server-rendered with actual values. Inside it each product has:
+//     &lt;a href=&quot;...&amp;amp;product_id=40&quot;&gt;&lt;img ...&gt;&lt;/a&gt;
+//     &lt;input type=&quot;hidden&quot; name=&quot;product_id&quot; value=&quot;40&quot;/&gt;
+//   Also the category controller sets href = product/category?...&amp;product_id=XX
+//   for each product card when product_id is selected in category.
+//   Regex: product_id=([0-9]+)
+//
+//   The script uses BOTH regexes combined as one alternation so it catches
+//   whichever pattern is present in the server response:
+//     (?:product-thumb product=&quot;|product_id=)([0-9]+)
+//
+//   LinkedHashSet deduplicates — same product_id appears many times per page
+//   (thumbnail &lt;a&gt; href, title &lt;a&gt; href, hidden input, &quot;Add to Cart&quot; button href).
+//
+// ── OUTPUT CSV FORMAT ──────────────────────────────────────────────────────────
+//   File saved to: &lt;jmx-dir&gt;/products.csv   (and products.json)
+//   Header: productId,path,categoryId,subcategoryId
+//
+//   Column usage in subsequent HTTP samplers:
+//     GET /index.php?route=product/category&amp;path=${path}          ← browse category
+//     GET /index.php?route=product/product&amp;product_id=${productId} ← open product
+//
+//   path encodes the full hierarchy — it is all you need for navigation:
+//     &quot;20&quot;    = top-level category   (categoryId=20, no subcategory)
+//     &quot;20_27&quot; = sub-category under 20 (categoryId=20, subcategoryId=27)
+//
+//   Example rows:
+//     40,20,20,
+//     41,20_27,20,27
+//     42,20_27,20,27
+//     43,25,25,
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import java.net.URL;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.File;
+import java.io.PrintWriter;
+import java.util.LinkedHashSet;
+import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+String BASE_URL  = &quot;http://opencart.local:8080&quot;;
+String LANGUAGE  = &quot;en-gb&quot;;
+String SAVE_DIR  = org.apache.jmeter.services.FileServer.getFileServer().getBaseDir();
+
+log.info(&quot;=== Extract Products: START ===&quot;);
+
+// ── Helper: HTTP GET ─────────────────────────────────────────────────────────
+// Uses URL.openStream() only. Do NOT use URL.openConnection()/HttpURLConnection
+// here: on Java 25 BeanShell reflects the concrete internal class
+// sun.net.www.protocol.http.HttpURLConnection, and the Java module system blocks
+// calls like setRequestMethod(), setRequestProperty(), setReadTimeout(), etc.
+// openStream() keeps BeanShell reflection on public java.net.URL + BufferedReader.
+String doGet(String urlStr) {
+    try {
+        URL url = new URL(urlStr);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream(), &quot;UTF-8&quot;));
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) { sb.append(line).append(&quot;\n&quot;); }
+        reader.close();
+        return sb.toString();
+    } catch (Exception e) {
+        log.warn(&quot;GET failed for &quot; + urlStr + &quot;: &quot; + e.getMessage());
+        return &quot;&quot;;
+    }
+}
+
+// ── Step 1: GET home page, extract unique category paths ─────────────────────
+// Parses &lt;nav id=&quot;menu&quot;&gt; → &lt;a href=&quot;...path=20&quot;&gt; (top-level)
+//                         → &lt;a href=&quot;...path=20_27&quot;&gt; (subcategory)
+// Source: upload/catalog/view/template/common/menu.html
+String homeHtml = doGet(BASE_URL + &quot;/index.php?route=common/home&amp;language=&quot; + LANGUAGE);
+Pattern pathPat = Pattern.compile(&quot;path=([0-9_]+)&quot;);
+Matcher pathMat = pathPat.matcher(homeHtml);
+LinkedHashSet uniquePaths = new LinkedHashSet();
+while (pathMat.find()) { uniquePaths.add(pathMat.group(1)); }
+log.info(&quot;Found &quot; + uniquePaths.size() + &quot; category path(s): &quot; + uniquePaths);
+
+// ── Step 2: For each path fetch category page and scrape product IDs ──────────
+// Source: upload/catalog/view/template/product/category.html
+//   Root element: &lt;div id=&quot;content&quot;&gt; → &lt;product-list&gt; web component
+//   Pattern A (product_list.html server-rendered):
+//     &lt;product-thumb product=&quot;40&quot;&gt;&lt;/product-thumb&gt;
+//   Pattern B (thumb.html href + hidden input):
+//     &lt;a href=&quot;...&amp;amp;product_id=40&quot;&gt; and &lt;input name=&quot;product_id&quot; value=&quot;40&quot;/&gt;
+//   Combined regex matches either: (?:product-thumb product=&quot;|product_id=)([0-9]+)
+ArrayList results  = new ArrayList();
+HashSet   seen     = new HashSet();
+// Matches BOTH server-rendered patterns (see SOURCE 2 comments above)
+Pattern   prodPat  = Pattern.compile(&quot;(?:product-thumb product=\&quot;|product_id=)([0-9]+)&quot;);
+
+Iterator pathIterator = uniquePaths.iterator();
+while (pathIterator.hasNext()) {
+    String path = (String) pathIterator.next();
+    String[] parts      = path.split(&quot;_&quot;);
+    int categoryId      = Integer.parseInt(parts[0]);
+    String subcatStr    = parts.length &gt; 1 ? parts[parts.length - 1] : &quot;&quot;;
+    Integer subcategoryId = subcatStr.isEmpty() ? null : Integer.parseInt(subcatStr);
+
+    String catHtml = doGet(BASE_URL + &quot;/index.php?route=product/category&amp;language=&quot; + LANGUAGE + &quot;&amp;path=&quot; + path);
+    Matcher prodMat = prodPat.matcher(catHtml);
+    LinkedHashSet productIds = new LinkedHashSet();  // dedup: same product_id appears multiple times per page
+    while (prodMat.find()) { productIds.add(prodMat.group(1)); }
+
+    Iterator productIterator = productIds.iterator();
+    while (productIterator.hasNext()) {
+        String pid = (String) productIterator.next();
+        String key = pid + &quot;_&quot; + path;
+        if (!seen.contains(key)) {  // dedup across paths (product can appear in parent + child category)
+            seen.add(key);
+            HashMap row = new HashMap();
+            row.put(&quot;productId&quot;,    Integer.parseInt(pid));
+            row.put(&quot;path&quot;,         path);
+            row.put(&quot;categoryId&quot;,   categoryId);
+            row.put(&quot;subcategoryId&quot;, subcategoryId);
+            results.add(row);
+        }
+    }
+    log.info(&quot;  path=&quot; + path + &quot; cat=&quot; + categoryId + &quot; subcat=&quot; + (subcategoryId != null ? subcategoryId : &quot;none&quot;) + &quot; products=&quot; + productIds);
+}
+log.info(&quot;Total: &quot; + results.size() + &quot; product-category associations&quot;);
+
+// ── Step 3: Build JSON string ─────────────────────────────────────────────────
+StringBuilder json = new StringBuilder(&quot;[\n&quot;);
+for (int i = 0; i &lt; results.size(); i++) {
+    HashMap r = (HashMap) results.get(i);
+    String subcat = r.get(&quot;subcategoryId&quot;) == null ? &quot;null&quot; : r.get(&quot;subcategoryId&quot;).toString();
+    json.append(&quot;  {\n&quot;);
+    json.append(&quot;    \&quot;productId\&quot;: &quot;).append(r.get(&quot;productId&quot;)).append(&quot;,\n&quot;);
+    json.append(&quot;    \&quot;path\&quot;: \&quot;&quot;).append(r.get(&quot;path&quot;)).append(&quot;\&quot;,\n&quot;);
+    json.append(&quot;    \&quot;categoryId\&quot;: &quot;).append(r.get(&quot;categoryId&quot;)).append(&quot;,\n&quot;);
+    json.append(&quot;    \&quot;subcategoryId\&quot;: &quot;).append(subcat).append(&quot;\n&quot;);
+    json.append(&quot;  }&quot;);
+    if (i &lt; results.size() - 1) json.append(&quot;,&quot;);
+    json.append(&quot;\n&quot;);
+}
+json.append(&quot;]&quot;);
+String jsonText = json.toString();
+
+// ── Step 4: Save products.json ────────────────────────────────────────────────
+PrintWriter jsonWriter = new PrintWriter(new File(SAVE_DIR + File.separator + &quot;products.json&quot;), &quot;UTF-8&quot;);
+jsonWriter.print(jsonText);
+jsonWriter.close();
+log.info(&quot;Saved JSON → &quot; + SAVE_DIR + File.separator + &quot;products.json&quot;);
+
+// ── Step 5: Save products.csv ─────────────────────────────────────────────────
+StringBuilder csv = new StringBuilder(&quot;productId,path,categoryId,subcategoryId\n&quot;);
+for (int i = 0; i &lt; results.size(); i++) {
+    HashMap r  = (HashMap) results.get(i);
+    String sub = r.get(&quot;subcategoryId&quot;) == null ? &quot;&quot; : r.get(&quot;subcategoryId&quot;).toString();
+    csv.append(r.get(&quot;productId&quot;)).append(&quot;,&quot;)
+       .append(r.get(&quot;path&quot;)).append(&quot;,&quot;)
+       .append(r.get(&quot;categoryId&quot;)).append(&quot;,&quot;)
+       .append(sub).append(&quot;\n&quot;);
+}
+PrintWriter csvWriter = new PrintWriter(new File(SAVE_DIR + File.separator + &quot;products.csv&quot;), &quot;UTF-8&quot;);
+csvWriter.print(csv.toString());
+csvWriter.close();
+log.info(&quot;Saved CSV  → &quot; + SAVE_DIR + File.separator + &quot;products.csv&quot;);
+
+// ── Step 6: Expose via JMeter properties ──────────────────────────────────────
+props.put(&quot;products_json&quot;, jsonText);
+props.put(&quot;product_count&quot;, String.valueOf(results.size()));
+vars.put(&quot;product_count&quot;,  String.valueOf(results.size()));
+
+SampleResult.setResponseData(jsonText, &quot;UTF-8&quot;);
+SampleResult.setContentType(&quot;application/json&quot;);
+SampleResult.setResponseCode(&quot;200&quot;);
+SampleResult.setResponseMessage(&quot;Extracted &quot; + results.size() + &quot; products from &quot; + uniquePaths.size() + &quot; categories&quot;);
+log.info(&quot;=== Extract Products: DONE ===&quot;);
+            </stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="cacheKey">false</stringProp>
+          </JSR223Sampler>
+          <hashTree/>
+        </hashTree>
+      </hashTree>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="User Thread Group - Register" enabled="true">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
@@ -296,7 +566,7 @@
         <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="Register for an affiliate account" enabled="false"/>
         <hashTree/>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="User - login">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="User - login" enabled="true">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -1113,7 +1383,7 @@
         <stringProp name="filename"></stringProp>
       </ResultCollector>
       <hashTree/>
-      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
+      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>
