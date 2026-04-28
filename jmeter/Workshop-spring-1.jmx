@@ -142,7 +142,7 @@
               <boolProp name="RegexExtractor.default_empty_value">false</boolProp>
             </RegexExtractor>
             <hashTree/>
-            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert register_token was extracted" enabled="true">
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert register_token was extracted">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="29632128">register_token=</stringProp>
               </collectionProp>
@@ -225,7 +225,28 @@
               </collectionProp>
             </elementProp>
           </HTTPSamplerProxy>
-          <hashTree/>
+          <hashTree>
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - User does not already exist">
+              <collectionProp name="Asserion.test_strings">
+                <stringProp name="777775980">Warning: E-Mail Address is already registered!</stringProp>
+              </collectionProp>
+              <stringProp name="Assertion.custom_message">EXCEPTION: User already exists - E-Mail Address is already registered! Registration skipped.</stringProp>
+              <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+              <boolProp name="Assertion.assume_success">false</boolProp>
+              <intProp name="Assertion.test_type">20</intProp>
+            </ResponseAssertion>
+            <hashTree/>
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - Registration succeeded">
+              <collectionProp name="Asserion.test_strings">
+                <stringProp name="-677180956">&quot;redirect&quot;</stringProp>
+              </collectionProp>
+              <stringProp name="Assertion.custom_message">EXCEPTION: Registration failed - success page not reached. Check form validation errors.</stringProp>
+              <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+              <boolProp name="Assertion.assume_success">false</boolProp>
+              <intProp name="Assertion.test_type">16</intProp>
+            </ResponseAssertion>
+            <hashTree/>
+          </hashTree>
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="/index.php" enabled="true">
             <stringProp name="HTTPSampler.domain">opencart.local</stringProp>
             <stringProp name="HTTPSampler.port">8080</stringProp>
@@ -865,7 +886,7 @@
               <hashTree/>
             </hashTree>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Verify all customers removed">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Verify all customers removed" enabled="true">
             <stringProp name="HTTPSampler.domain">opencart.local</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
             <stringProp name="HTTPSampler.path">/admin/index.php</stringProp>
@@ -910,7 +931,7 @@
               </collectionProp>
             </HeaderManager>
             <hashTree/>
-            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - No customers remain (no checkboxes)">
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - No customers remain (no checkboxes)" enabled="true">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="1747216181">name=&quot;selected[]&quot;</stringProp>
               </collectionProp>
@@ -920,7 +941,7 @@
               <intProp name="Assertion.test_type">20</intProp>
             </ResponseAssertion>
             <hashTree/>
-            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - Customer list shows No results">
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - Customer list shows No results" enabled="true">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="-1106205110">No results!</stringProp>
               </collectionProp>
@@ -981,7 +1002,7 @@
             </elementProp>
           </HTTPSamplerProxy>
           <hashTree/>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Main page">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Main page" enabled="true">
             <stringProp name="HTTPSampler.domain">opencart.local</stringProp>
             <stringProp name="HTTPSampler.path">/</stringProp>
             <boolProp name="HTTPSampler.auto_redirects">true</boolProp>
