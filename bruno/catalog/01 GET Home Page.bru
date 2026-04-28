@@ -21,6 +21,7 @@ script:post-response {
   const match = body.match(/product\/category&amp;language=en-gb&amp;path=(\d+)/);
   if (match) {
     bru.setVar('categoryId', match[1]);
+    bru.setEnvVar('categoryId', match[1]);
     console.log('Extracted categoryId: ' + match[1]);
   } else {
     console.warn('categoryId not found in home page response');

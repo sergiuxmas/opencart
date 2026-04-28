@@ -31,6 +31,11 @@ script:post-response {
       const match = data.redirect.match(/customer_token=([a-zA-Z0-9]+)/);
       if (match) {
         bru.setVar('customer_token', match[1]);
+        bru.setEnvVar('customer_token', match[1]);
+        // 'apiKey' is the variable Bruno uses for the customerToken apiKey security scheme
+        // (imported from openapi.yaml → securitySchemes.customerToken → customer_token={{apiKey}})
+        bru.setVar('apiKey', match[1]);
+        bru.setEnvVar('apiKey', match[1]);
         console.log('Login successful. Extracted customer_token: ' + match[1]);
       }
     } else if (data.error) {

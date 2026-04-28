@@ -22,6 +22,7 @@ script:post-response {
   const match = body.match(/route=product\/product&amp;language=en-gb&amp;product_id=(\d+)/);
   if (match) {
     bru.setVar('productId', match[1]);
+    bru.setEnvVar('productId', match[1]);
     console.log('Extracted productId: ' + match[1]);
   } else {
     console.warn('productId not found in category page response');

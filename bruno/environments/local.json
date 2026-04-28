@@ -18,7 +18,8 @@
     { "name": "adminPassword",     "value": "admin",                       "enabled": true, "secret": true  },
     { "name": "admin_login_token", "value": "",                            "enabled": true, "secret": false },
     { "name": "admin_user_token",  "value": "",                            "enabled": true, "secret": false },
-    { "name": "customer_id",       "value": "",                            "enabled": true, "secret": false }
+    { "name": "customer_id",       "value": "",                            "enabled": true, "secret": false },
+    { "name": "apiKey",            "value": "",                            "enabled": true, "secret": false }
   ]
 }
 

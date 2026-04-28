@@ -5,13 +5,12 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/admin/index.php
+  url: {{baseUrl}}/admin/index.php?route=common/login.login
   body: formUrlEncoded
   auth: none
 }
 
 params:query {
-  route: common/login.login
   login_token: {{admin_login_token}}
 }
 
@@ -21,30 +20,48 @@ body:form-urlencoded {
 }
 
 script:post-response {
-  // Response: {"redirect":"...user_token=..."} on success
-  //           {"error":"Warning: No match..."} on failure
+  // Response on success:  {"redirect":"http://...?route=common/dashboard&user_token=XYZ"}
+  // Response on failure:  {"error":"Warning: No match for Username and/or Password."}
   const body = res.getBody();
   try {
     const data = JSON.parse(body);
+
     if (data.redirect) {
       const match = data.redirect.match(/user_token=([a-zA-Z0-9]+)/);
       if (match) {
-        bru.setVar('admin_user_token', match[1]);
-        console.log('Admin login successful. Extracted user_token: ' + match[1]);
+        const token = match[1];
+
+        // Used by hand-crafted admin requests ({{admin_user_token}})
+        bru.setVar('admin_user_token', token);
+        bru.setEnvVar('admin_user_token', token);
+
+        // 'apiKey' = variable Bruno assigns to the userToken apiKey security scheme
+        // imported from openapi.yaml → every admin endpoint appends user_token={{apiKey}}
+        bru.setVar('apiKey', token);
+        bru.setEnvVar('apiKey', token);
+
+        console.log('✅ Admin login OK  |  user_token = apiKey = ' + token);
       }
     } else if (data.error) {
-      console.error('Admin login failed: ' + data.error);
+      console.error('❌ Admin login failed: ' + data.error);
     }
-  } catch(e) {
-    console.error('Could not parse admin login response: ' + e.message);
+  } catch (e) {
+    console.error('Could not parse response: ' + e.message);
   }
 }
 
 tests {
-  test("Admin login returns redirect with user_token", function() {
+  test("Status 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Response contains redirect with user_token", function() {
     const data = JSON.parse(res.getBody());
     expect(data).to.have.property('redirect');
     expect(data.redirect).to.include('user_token=');
   });
-}
 
+  test("No login error", function() {
+    expect(res.getBody()).to.not.include('"error"');
+  });
+}

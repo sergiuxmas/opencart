@@ -11,14 +11,24 @@ get {
 }
 
 script:post-response {
-  // Extract admin login_token (CSRF) from the admin login form action
   const body = res.getBody();
-  const match = body.match(/route=common\/login\.login[^"]*login_token=([a-zA-Z0-9]+)/);
+
+  // The form action renders as:
+  // <form id="form-login" action="...?route=common/login.login&amp;login_token=TOKEN">
+  // Match login_token= directly — it only appears once in the page
+  const match = body.match(/login_token=([a-zA-Z0-9]+)/);
   if (match) {
     bru.setVar('admin_login_token', match[1]);
-    console.log('Extracted admin login_token: ' + match[1]);
+    bru.setEnvVar('admin_login_token', match[1]);
+    console.log('✅ admin_login_token = ' + match[1]);
   } else {
-    console.warn('admin login_token not found');
+    console.error('❌ login_token not found in admin login page.');
+    console.error('   Response preview: ' + body.substring(0, 300));
   }
 }
 
+tests {
+  test("Status 200", function() {
+    expect(res.status).to.equal(200);
+  });
+}
