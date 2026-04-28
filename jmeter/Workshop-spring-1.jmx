@@ -89,7 +89,7 @@
         <stringProp name="ProxyControlGui.content_type_exclude"></stringProp>
       </ProxyControl>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="User Thread Group - Register">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="User Thread Group - Register" enabled="true">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -142,7 +142,7 @@
               <boolProp name="RegexExtractor.default_empty_value">false</boolProp>
             </RegexExtractor>
             <hashTree/>
-            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert register_token was extracted">
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert register_token was extracted" enabled="true">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="29632128">register_token=</stringProp>
               </collectionProp>
@@ -226,7 +226,7 @@
             </elementProp>
           </HTTPSamplerProxy>
           <hashTree>
-            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - User does not already exist">
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - User does not already exist" enabled="true">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="777775980">Warning: E-Mail Address is already registered!</stringProp>
               </collectionProp>
@@ -236,7 +236,7 @@
               <intProp name="Assertion.test_type">20</intProp>
             </ResponseAssertion>
             <hashTree/>
-            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - Registration succeeded">
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - Registration succeeded" enabled="true">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="-677180956">&quot;redirect&quot;</stringProp>
               </collectionProp>
@@ -272,7 +272,7 @@
           <hashTree/>
         </hashTree>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="User Thread Group - Flows" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="User Thread Group - Flows">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -289,14 +289,14 @@
           <boolProp name="CookieManager.controlledByThreadGroup">false</boolProp>
         </CookieManager>
         <hashTree/>
-        <RecordingController guiclass="RecordController" testclass="RecordingController" testname="Recording Controller" enabled="false"/>
+        <RecordingController guiclass="RecordController" testclass="RecordingController" testname="Recording Controller" enabled="true"/>
         <hashTree/>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="Edit user account information" enabled="true"/>
+        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="Edit user account information" enabled="false"/>
         <hashTree/>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="Register for an affiliate account" enabled="true"/>
+        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="Register for an affiliate account" enabled="false"/>
         <hashTree/>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="User - login" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="User - login">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -309,7 +309,7 @@
       <hashTree>
         <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="Login and Logout account" enabled="true"/>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="/opencart/upload/index.php-11" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Login page" enabled="true">
             <stringProp name="HTTPSampler.domain">opencart.local</stringProp>
             <stringProp name="HTTPSampler.port">8080</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
@@ -335,29 +335,36 @@
               <stringProp name="ConstantTimer.delay">1000</stringProp>
             </ConstantTimer>
             <hashTree/>
-            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Assertion" enabled="true">
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - Login page loaded" enabled="true">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="1046977484">Returning Customer</stringProp>
               </collectionProp>
-              <stringProp name="Assertion.custom_message"></stringProp>
+              <stringProp name="Assertion.custom_message">EXCEPTION: Login page did not load correctly - expected login form text not found.</stringProp>
               <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
               <boolProp name="Assertion.assume_success">false</boolProp>
-              <intProp name="Assertion.test_type">2</intProp>
+              <intProp name="Assertion.test_type">16</intProp>
             </ResponseAssertion>
             <hashTree/>
+            <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Extract Login Token" enabled="true">
+              <stringProp name="RegexExtractor.useHeaders">false</stringProp>
+              <stringProp name="RegexExtractor.refname">login_token</stringProp>
+              <stringProp name="RegexExtractor.regex">route=account/login\.login[^&quot;]*login_token=([a-zA-Z0-9]+)</stringProp>
+              <stringProp name="RegexExtractor.template">$1$</stringProp>
+              <stringProp name="RegexExtractor.default">LOGIN_TOKEN_NOT_FOUND</stringProp>
+              <stringProp name="RegexExtractor.match_number">1</stringProp>
+              <boolProp name="RegexExtractor.default_empty_value">false</boolProp>
+            </RegexExtractor>
+            <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="/opencart/upload/index.php?route=account/login-12" enabled="true">
-            <stringProp name="TestPlan.comments">Detected the start of a redirect chain</stringProp>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Account login" enabled="true">
+            <stringProp name="TestPlan.comments">POST to account/login.login with login_token CSRF token extracted from GET login page</stringProp>
             <stringProp name="HTTPSampler.domain">opencart.local</stringProp>
             <stringProp name="HTTPSampler.port">8080</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
-            <stringProp name="HTTPSampler.path">/index.php?route=account/login</stringProp>
-            <boolProp name="HTTPSampler.auto_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.path">/index.php?route=account/login.login&amp;language=en-gb&amp;login_token=${login_token}</stringProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
             <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
-            <boolProp name="HTTPSampler.DO_MULTIPART_POST">true</boolProp>
-            <boolProp name="HTTPSampler.BROWSER_COMPATIBLE_MULTIPART">true</boolProp>
             <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
               <collectionProp name="Arguments.arguments">
@@ -371,7 +378,7 @@
                 <elementProp name="password" elementType="HTTPArgument">
                   <boolProp name="HTTPArgument.always_encode">false</boolProp>
                   <stringProp name="Argument.name">password</stringProp>
-                  <stringProp name="Argument.value">opencard</stringProp>
+                  <stringProp name="Argument.value">opencart</stringProp>
                   <stringProp name="Argument.metadata">=</stringProp>
                   <boolProp name="HTTPArgument.use_equals">true</boolProp>
                 </elementProp>
@@ -392,14 +399,43 @@
               </collectionProp>
             </HeaderManager>
             <hashTree/>
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - Login succeeded" enabled="true">
+              <collectionProp name="Asserion.test_strings">
+                <stringProp name="-677180956">&quot;redirect&quot;</stringProp>
+              </collectionProp>
+              <stringProp name="Assertion.custom_message">EXCEPTION: Login failed - no redirect in response. User may not exist or credentials are wrong.</stringProp>
+              <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+              <boolProp name="Assertion.assume_success">false</boolProp>
+              <intProp name="Assertion.test_type">16</intProp>
+            </ResponseAssertion>
+            <hashTree/>
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - No login error" enabled="true">
+              <collectionProp name="Asserion.test_strings">
+                <stringProp name="1850298826">No match for E-Mail Address and/or Password.</stringProp>
+              </collectionProp>
+              <stringProp name="Assertion.custom_message">EXCEPTION: Login failed - E-Mail Address or Password does not match. Customer may not exist.</stringProp>
+              <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+              <boolProp name="Assertion.assume_success">false</boolProp>
+              <intProp name="Assertion.test_type">20</intProp>
+            </ResponseAssertion>
+            <hashTree/>
+            <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Extract Customer Token" enabled="true">
+              <stringProp name="RegexExtractor.useHeaders">false</stringProp>
+              <stringProp name="RegexExtractor.refname">customer_token</stringProp>
+              <stringProp name="RegexExtractor.regex">customer_token=([a-zA-Z0-9]+)</stringProp>
+              <stringProp name="RegexExtractor.template">$1$</stringProp>
+              <stringProp name="RegexExtractor.default">CUSTOMER_TOKEN_NOT_FOUND</stringProp>
+              <stringProp name="RegexExtractor.match_number">1</stringProp>
+              <boolProp name="RegexExtractor.default_empty_value">false</boolProp>
+            </RegexExtractor>
+            <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="/opencart/upload/index.php-13" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Account page (logged in)" enabled="true">
             <stringProp name="HTTPSampler.domain">opencart.local</stringProp>
             <stringProp name="HTTPSampler.port">8080</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
             <stringProp name="HTTPSampler.path">/index.php</stringProp>
-            <boolProp name="HTTPSampler.auto_redirects">true</boolProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
             <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
             <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
@@ -412,6 +448,20 @@
                   <stringProp name="Argument.metadata">=</stringProp>
                   <boolProp name="HTTPArgument.use_equals">true</boolProp>
                 </elementProp>
+                <elementProp name="language" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.name">language</stringProp>
+                  <stringProp name="Argument.value">en-gb</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                  <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                </elementProp>
+                <elementProp name="customer_token" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.name">customer_token</stringProp>
+                  <stringProp name="Argument.value">${customer_token}</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                  <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                </elementProp>
               </collectionProp>
             </elementProp>
           </HTTPSamplerProxy>
@@ -420,18 +470,18 @@
               <stringProp name="ConstantTimer.delay">1000</stringProp>
             </ConstantTimer>
             <hashTree/>
-            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Assertion" enabled="true">
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - User is logged in" enabled="true">
               <collectionProp name="Asserion.test_strings">
-                <stringProp name="-1482605639">My Account</stringProp>
+                <stringProp name="-166799998">Edit your account information</stringProp>
               </collectionProp>
-              <stringProp name="Assertion.custom_message"></stringProp>
+              <stringProp name="Assertion.custom_message">EXCEPTION: Login succeeded but account page does not show expected content - user may not be logged in.</stringProp>
               <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
               <boolProp name="Assertion.assume_success">false</boolProp>
-              <intProp name="Assertion.test_type">2</intProp>
+              <intProp name="Assertion.test_type">16</intProp>
             </ResponseAssertion>
             <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="/opencart/upload/index.php-14" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Account logout" enabled="true">
             <stringProp name="TestPlan.comments">Detected the start of a redirect chain</stringProp>
             <stringProp name="HTTPSampler.domain">opencart.local</stringProp>
             <stringProp name="HTTPSampler.port">8080</stringProp>
@@ -455,7 +505,7 @@
             </elementProp>
           </HTTPSamplerProxy>
           <hashTree/>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="/opencart/upload/index.php-15" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Account page (after logout)" enabled="true">
             <stringProp name="HTTPSampler.domain">opencart.local</stringProp>
             <stringProp name="HTTPSampler.port">8080</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
@@ -482,18 +532,28 @@
               <stringProp name="ConstantTimer.delay">1000</stringProp>
             </ConstantTimer>
             <hashTree/>
-            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Assertion" enabled="true">
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - User is logged out (login page shown)" enabled="true">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="-715727440">Register Account</stringProp>
               </collectionProp>
-              <stringProp name="Assertion.custom_message"></stringProp>
+              <stringProp name="Assertion.custom_message">EXCEPTION: Logout failed - login page was not shown after logout.</stringProp>
               <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
               <boolProp name="Assertion.assume_success">false</boolProp>
-              <intProp name="Assertion.test_type">2</intProp>
+              <intProp name="Assertion.test_type">16</intProp>
+            </ResponseAssertion>
+            <hashTree/>
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert - Account page not accessible after logout" enabled="true">
+              <collectionProp name="Asserion.test_strings">
+                <stringProp name="-166799998">Edit your account information</stringProp>
+              </collectionProp>
+              <stringProp name="Assertion.custom_message">EXCEPTION: Logout failed - account page is still accessible (user still logged in).</stringProp>
+              <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+              <boolProp name="Assertion.assume_success">false</boolProp>
+              <intProp name="Assertion.test_type">20</intProp>
             </ResponseAssertion>
             <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="/opencart/upload/index.php-16" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="/index.php" enabled="true">
             <stringProp name="HTTPSampler.domain">opencart.local</stringProp>
             <stringProp name="HTTPSampler.port">8080</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
@@ -1053,7 +1113,7 @@
         <stringProp name="filename"></stringProp>
       </ResultCollector>
       <hashTree/>
-      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
+      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>
