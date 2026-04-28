@@ -1,0 +1,109 @@
+meta {
+  name: 05 GET All Products with Categories
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/index.php
+  body: none
+  auth: none
+}
+
+params:query {
+  route: common/home
+  language: {{language}}
+}
+
+script:post-response {
+  /**
+   * Extracts the full product → category mapping by:
+   *  1. Scraping all category paths from the navigation menu on the home page
+   *     - path=20       → top-level category   (categoryId=20, subcategoryId=null)
+   *     - path=20_27    → subcategory          (categoryId=20, subcategoryId=27)
+   *  2. Fetching each category page and scraping the product_id values from product links
+   *
+   * Result stored in: {{productCategoryMap}}  (JSON string)
+   * Format: [ { productId, path, categoryId, subcategoryId }, ... ]
+   */
+
+  const baseUrl  = bru.getVar('baseUrl')  || 'http://opencart.local:8080';
+  const language = bru.getVar('language') || 'en-gb';
+  const homeHtml = res.getBody();
+
+  // ── Step 1: extract unique category paths from menu hrefs ─────────────────
+  const pathMatches = [...homeHtml.matchAll(/path=([\d_]+)/g)];
+  const uniquePaths = [...new Set(pathMatches.map(m => m[1]))];
+
+  console.log(`Found ${uniquePaths.length} category path(s):`, uniquePaths);
+
+  if (uniquePaths.length === 0) {
+    console.warn('No category paths found. Is the server running and the menu rendered?');
+    return;
+  }
+
+  // ── Step 2: fetch each category page and scrape product IDs ───────────────
+  const results = [];
+  const seen    = new Set();   // deduplicate product_id within the same path
+
+  for (const path of uniquePaths) {
+    const parts         = path.split('_');
+    const categoryId    = parts[0];
+    const subcategoryId = parts.length > 1 ? parts[parts.length - 1] : null;
+
+    try {
+      const url      = `${baseUrl}/index.php?route=product/category&language=${language}&path=${path}`;
+      const response = await fetch(url);
+      const catHtml  = await response.text();
+
+      // product links look like: href="...product_id=40..."
+      const productMatches = [...catHtml.matchAll(/product_id=(\d+)/g)];
+      const productIds     = [...new Set(productMatches.map(m => m[1]))];
+
+      for (const productId of productIds) {
+        const key = `${productId}_${path}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push({
+            productId:     parseInt(productId, 10),
+            path:          path,
+            categoryId:    parseInt(categoryId, 10),
+            subcategoryId: subcategoryId ? parseInt(subcategoryId, 10) : null
+          });
+        }
+      }
+
+      console.log(
+        `path=${path} (categoryId=${categoryId}, subcategoryId=${subcategoryId ?? 'none'})` +
+        ` → ${productIds.length} product(s): [${productIds.join(', ')}]`
+      );
+
+    } catch (err) {
+      console.error(`Failed to fetch category path=${path}: ${err.message}`);
+    }
+  }
+
+  // ── Step 3: store and summarise ───────────────────────────────────────────
+  bru.setVar('productCategoryMap', JSON.stringify(results));
+
+  // Unique product IDs across all categories
+  const uniqueProductIds = [...new Set(results.map(r => r.productId))];
+  bru.setVar('allProductIds',  JSON.stringify(uniqueProductIds));
+  bru.setVar('firstProductId', uniqueProductIds[0] ?? '');
+  bru.setVar('firstCategoryId', results[0]?.categoryId ?? '');
+
+  console.log('\n=== Product–Category Map ===');
+  console.log(JSON.stringify(results, null, 2));
+  console.log(`\nTotal: ${results.length} product–category association(s), ${uniqueProductIds.length} unique product(s)`);
+}
+
+tests {
+  test("Home page loads (status 200)", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Navigation menu contains at least one category path", function() {
+    expect(res.getBody()).to.match(/path=[\d_]+/);
+  });
+}
+
