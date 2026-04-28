@@ -1,0 +1,30 @@
+meta {
+  name: 04 GET Customer List
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/admin/index.php
+  body: none
+  auth: none
+}
+
+params:query {
+  route: customer/customer.list
+  user_token: {{admin_user_token}}
+  language: {{language}}
+}
+
+script:post-response {
+  // Extract first customer_id from the HTML checkboxes
+  const body = res.getBody();
+  const match = body.match(/name="selected\[\]" value="(\d+)"/);
+  if (match) {
+    bru.setVar('customer_id', match[1]);
+    console.log('Extracted customer_id: ' + match[1]);
+  } else {
+    console.log('No customers found (list is empty)');
+  }
+}
+

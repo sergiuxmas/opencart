@@ -1,0 +1,608 @@
+openapi: 3.0.3
+info:
+  title: OpenCart API
+  description: |
+    OpenCart 4.x catalog, account and admin endpoints.
+
+    **Authentication flow:**
+    1. `GET /index.php?route=account/login` → extract `login_token` from response HTML
+    2. `POST /index.php?route=account/login.login&login_token={token}` → response JSON contains `customer_token`
+    3. Pass `customer_token` on every protected account request
+
+    **Admin flow:**
+    1. `GET /admin/` → extract `login_token` from response HTML
+    2. `POST /admin/index.php?route=common/login.login&login_token={token}` → response JSON contains `user_token`
+    3. Pass `user_token` on every admin request
+  version: 4.1.0.4
+
+servers:
+  - url: http://opencart.local:8080
+    description: Local Docker environment
+
+tags:
+  - name: Catalog
+    description: Public storefront pages
+  - name: Account
+    description: Customer registration, login and profile
+  - name: Admin
+    description: Admin panel endpoints (requires admin login)
+
+# ─────────────────────────────────────────────
+# PATHS
+# ─────────────────────────────────────────────
+paths:
+
+  # ── CATALOG ──────────────────────────────────
+  /index.php:
+    get:
+      tags: [Catalog]
+      summary: Home page
+      operationId: getHomePage
+      parameters:
+        - $ref: '#/components/parameters/RouteHome'
+        - $ref: '#/components/parameters/Language'
+      responses:
+        '200':
+          description: HTML home page with category navigation
+
+  # ── PRODUCT CATEGORY ─────────────────────────
+  /catalog/category:
+    get:
+      tags: [Catalog]
+      summary: Category product listing
+      operationId: getCategoryPage
+      parameters:
+        - name: route
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [product/category]
+        - $ref: '#/components/parameters/Language'
+        - name: path
+          in: query
+          required: true
+          description: Category ID (e.g. 20) or subcategory path (e.g. 20_27)
+          schema:
+            type: string
+            example: '20'
+      responses:
+        '200':
+          description: HTML category page listing products
+
+  # ── PRODUCT DETAIL ────────────────────────────
+  /catalog/product:
+    get:
+      tags: [Catalog]
+      summary: Product detail page
+      operationId: getProductPage
+      parameters:
+        - name: route
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [product/product]
+        - $ref: '#/components/parameters/Language'
+        - name: product_id
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 40
+      responses:
+        '200':
+          description: HTML product detail page
+
+  # ── SEARCH ───────────────────────────────────
+  /catalog/search:
+    get:
+      tags: [Catalog]
+      summary: Product search
+      operationId: searchProducts
+      parameters:
+        - name: route
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [product/search]
+        - $ref: '#/components/parameters/Language'
+        - name: search
+          in: query
+          required: true
+          schema:
+            type: string
+            example: MacBook
+      responses:
+        '200':
+          description: HTML search results page
+
+  # ── REGISTER PAGE ─────────────────────────────
+  /account/register:
+    get:
+      tags: [Account]
+      summary: Get register page (extracts register_token)
+      operationId: getRegisterPage
+      parameters:
+        - name: route
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [account/register]
+        - $ref: '#/components/parameters/Language'
+      responses:
+        '200':
+          description: HTML registration form. Extract `register_token` from form action URL.
+
+  # ── REGISTER SAVE ─────────────────────────────
+  /account/register/save:
+    post:
+      tags: [Account]
+      summary: Submit registration form
+      operationId: registerAccount
+      parameters:
+        - name: route
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [account/register.save]
+        - $ref: '#/components/parameters/Language'
+        - name: register_token
+          in: query
+          required: true
+          description: CSRF token extracted from GET register page
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: JSON response
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RedirectResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                success:
+                  value:
+                    redirect: "http://opencart.local:8080/index.php?route=account/success&language=en-gb"
+                already_exists:
+                  value:
+                    error:
+                      warning: "Warning: E-Mail Address is already registered!"
+
+  # ── LOGIN PAGE ────────────────────────────────
+  /account/login:
+    get:
+      tags: [Account]
+      summary: Get login page (extracts login_token)
+      operationId: getLoginPage
+      parameters:
+        - name: route
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [account/login]
+        - $ref: '#/components/parameters/Language'
+      responses:
+        '200':
+          description: HTML login form. Extract `login_token` from form action URL.
+
+  # ── LOGIN SUBMIT ──────────────────────────────
+  /account/login/submit:
+    post:
+      tags: [Account]
+      summary: Submit login credentials
+      operationId: loginAccount
+      parameters:
+        - name: route
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [account/login.login]
+        - $ref: '#/components/parameters/Language'
+        - name: login_token
+          in: query
+          required: true
+          description: CSRF token extracted from GET login page
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: JSON response
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/LoginSuccessResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                success:
+                  value:
+                    redirect: "http://opencart.local:8080/index.php?route=account/account&language=en-gb&customer_token=abc123"
+                    customer:
+                      customer_id: 1
+                      firstname: Test
+                      lastname: User
+                      email: user01@testmail.com
+                wrong_credentials:
+                  value:
+                    error:
+                      warning: "Warning: No match for E-Mail Address and/or Password."
+
+  # ── ACCOUNT PAGE ─────────────────────────────
+  /account/account:
+    get:
+      tags: [Account]
+      summary: My Account page (requires customer_token)
+      operationId: getAccountPage
+      parameters:
+        - name: route
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [account/account]
+        - $ref: '#/components/parameters/Language'
+        - name: customer_token
+          in: query
+          required: true
+          description: Token extracted from login response redirect URL
+          schema:
+            type: string
+      responses:
+        '200':
+          description: HTML account dashboard (contains "Edit your account information")
+        '302':
+          description: Redirect to login page if customer_token is missing or invalid
+
+  # ── LOGOUT ────────────────────────────────────
+  /account/logout:
+    get:
+      tags: [Account]
+      summary: Logout current customer
+      operationId: logoutAccount
+      parameters:
+        - name: route
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [account/logout]
+        - $ref: '#/components/parameters/Language'
+      responses:
+        '200':
+          description: HTML logout confirmation page
+
+  # ── ADMIN LOGIN PAGE ──────────────────────────
+  /admin/:
+    get:
+      tags: [Admin]
+      summary: Get admin login page (extracts admin login_token)
+      operationId: getAdminLoginPage
+      responses:
+        '200':
+          description: HTML admin login form. Extract `login_token` from form action URL.
+
+  # ── ADMIN LOGIN SUBMIT ────────────────────────
+  /admin/login:
+    post:
+      tags: [Admin]
+      summary: Submit admin login
+      operationId: loginAdmin
+      servers:
+        - url: http://opencart.local:8080
+      parameters:
+        - name: route
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [common/login.login]
+        - name: login_token
+          in: query
+          required: true
+          description: CSRF token extracted from GET admin login page
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminLoginRequest'
+      responses:
+        '200':
+          description: JSON response
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RedirectResponse'
+                  - $ref: '#/components/schemas/AdminErrorResponse'
+              examples:
+                success:
+                  value:
+                    redirect: "http://opencart.local:8080/admin/index.php?route=common/dashboard&user_token=xyz789"
+                wrong_credentials:
+                  value:
+                    error: "Warning: No match for Username and/or Password."
+
+  # ── ADMIN PRODUCT LIST ────────────────────────
+  /admin/products:
+    get:
+      tags: [Admin]
+      summary: List products (admin)
+      operationId: adminGetProductList
+      parameters:
+        - name: route
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [catalog/product.list]
+        - $ref: '#/components/parameters/Language'
+        - $ref: '#/components/parameters/UserToken'
+        - name: filter_name
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: JSON list of products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductListResponse'
+
+  # ── ADMIN CUSTOMER LIST ───────────────────────
+  /admin/customers:
+    get:
+      tags: [Admin]
+      summary: List customers (admin)
+      operationId: adminGetCustomerList
+      parameters:
+        - name: route
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [customer/customer.list]
+        - $ref: '#/components/parameters/Language'
+        - $ref: '#/components/parameters/UserToken'
+        - name: filter_name
+          in: query
+          schema:
+            type: string
+        - name: filter_email
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: HTML customer list page
+
+  # ── ADMIN DELETE CUSTOMER ─────────────────────
+  /admin/customers/delete:
+    post:
+      tags: [Admin]
+      summary: Delete one or more customers (admin)
+      operationId: adminDeleteCustomer
+      parameters:
+        - name: route
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [customer/customer.delete]
+        - $ref: '#/components/parameters/Language'
+        - $ref: '#/components/parameters/UserToken'
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [selected]
+              properties:
+                selected[]:
+                  type: array
+                  items:
+                    type: integer
+                  description: Array of customer_id values to delete
+                  example: [1, 2, 3]
+      responses:
+        '200':
+          description: JSON confirmation of deletion
+
+# ─────────────────────────────────────────────
+# COMPONENTS
+# ─────────────────────────────────────────────
+components:
+
+  parameters:
+    Language:
+      name: language
+      in: query
+      required: false
+      schema:
+        type: string
+        default: en-gb
+        example: en-gb
+
+    RouteHome:
+      name: route
+      in: query
+      required: true
+      schema:
+        type: string
+        enum: [common/home]
+
+    UserToken:
+      name: user_token
+      in: query
+      required: true
+      description: Admin session token from login response
+      schema:
+        type: string
+
+  schemas:
+
+    RegisterRequest:
+      type: object
+      required: [firstname, lastname, email, password, agree]
+      properties:
+        customer_group_id:
+          type: integer
+          default: 1
+        firstname:
+          type: string
+          example: Test
+        lastname:
+          type: string
+          example: User
+        email:
+          type: string
+          format: email
+          example: user01@testmail.com
+        telephone:
+          type: string
+          example: '0712345678'
+        password:
+          type: string
+          format: password
+          example: Test@1234
+        agree:
+          type: integer
+          enum: [1]
+          description: Must be 1 (agree to terms)
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user01@testmail.com
+        password:
+          type: string
+          format: password
+          example: Test@1234
+
+    AdminLoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: admin
+        password:
+          type: string
+          format: password
+          example: admin
+
+    RedirectResponse:
+      type: object
+      properties:
+        redirect:
+          type: string
+          description: Absolute URL to redirect to after success
+
+    LoginSuccessResponse:
+      type: object
+      properties:
+        redirect:
+          type: string
+          example: "http://opencart.local:8080/index.php?route=account/account&language=en-gb&customer_token=abc123"
+        customer:
+          type: object
+          properties:
+            customer_id:
+              type: integer
+            customer_group_id:
+              type: integer
+            firstname:
+              type: string
+            lastname:
+              type: string
+            email:
+              type: string
+            telephone:
+              type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            warning:
+              type: string
+            email:
+              type: string
+            password:
+              type: string
+            firstname:
+              type: string
+            lastname:
+              type: string
+            telephone:
+              type: string
+
+    AdminErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+
+    ProductListResponse:
+      type: object
+      properties:
+        products:
+          type: array
+          items:
+            type: object
+            properties:
+              product_id:
+                type: integer
+              name:
+                type: string
+              model:
+                type: string
+              price:
+                type: string
+              quantity:
+                type: integer
+              status:
+                type: integer
+        total:
+          type: integer
+

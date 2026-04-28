@@ -1,0 +1,28 @@
+meta {
+  name: 05 POST Delete Customer
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/admin/index.php
+  body: formUrlEncoded
+  auth: none
+}
+
+params:query {
+  route: customer/customer.delete
+  user_token: {{admin_user_token}}
+  language: {{language}}
+}
+
+body:form-urlencoded {
+  selected[]: {{customer_id}}
+}
+
+tests {
+  test("Delete request accepted (200 OK)", function() {
+    expect(res.status).to.equal(200);
+  });
+}
+

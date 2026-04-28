@@ -1,0 +1,24 @@
+meta {
+  name: 01 GET Admin Login Page
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/admin/
+  body: none
+  auth: none
+}
+
+script:post-response {
+  // Extract admin login_token (CSRF) from the admin login form action
+  const body = res.getBody();
+  const match = body.match(/route=common\/login\.login[^"]*login_token=([a-zA-Z0-9]+)/);
+  if (match) {
+    bru.setVar('admin_login_token', match[1]);
+    console.log('Extracted admin login_token: ' + match[1]);
+  } else {
+    console.warn('admin login_token not found');
+  }
+}
+

@@ -1,0 +1,50 @@
+meta {
+  name: 02 POST Admin Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/admin/index.php
+  body: formUrlEncoded
+  auth: none
+}
+
+params:query {
+  route: common/login.login
+  login_token: {{admin_login_token}}
+}
+
+body:form-urlencoded {
+  username: {{adminUsername}}
+  password: {{adminPassword}}
+}
+
+script:post-response {
+  // Response: {"redirect":"...user_token=..."} on success
+  //           {"error":"Warning: No match..."} on failure
+  const body = res.getBody();
+  try {
+    const data = JSON.parse(body);
+    if (data.redirect) {
+      const match = data.redirect.match(/user_token=([a-zA-Z0-9]+)/);
+      if (match) {
+        bru.setVar('admin_user_token', match[1]);
+        console.log('Admin login successful. Extracted user_token: ' + match[1]);
+      }
+    } else if (data.error) {
+      console.error('Admin login failed: ' + data.error);
+    }
+  } catch(e) {
+    console.error('Could not parse admin login response: ' + e.message);
+  }
+}
+
+tests {
+  test("Admin login returns redirect with user_token", function() {
+    const data = JSON.parse(res.getBody());
+    expect(data).to.have.property('redirect');
+    expect(data.redirect).to.include('user_token=');
+  });
+}
+

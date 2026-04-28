@@ -1,0 +1,51 @@
+meta {
+  name: 02 POST Register
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/index.php
+  body: formUrlEncoded
+  auth: none
+}
+
+params:query {
+  route: account/register.save
+  language: {{language}}
+  register_token: {{register_token}}
+}
+
+body:form-urlencoded {
+  customer_group_id: 1
+  firstname: {{firstname}}
+  lastname: {{lastname}}
+  email: {{email}}
+  telephone: {{telephone}}
+  password: {{password}}
+  agree: 1
+}
+
+script:post-response {
+  // Response: {"redirect":"..."} on success, {"error":{...}} on failure
+  const body = res.getBody();
+  try {
+    const data = JSON.parse(body);
+    if (data.redirect) {
+      console.log('Registration successful. Redirect: ' + data.redirect);
+    } else if (data.error) {
+      console.error('Registration failed: ' + JSON.stringify(data.error));
+    }
+  } catch(e) {
+    console.error('Could not parse registration response: ' + e.message);
+  }
+}
+
+tests {
+  test("Registration succeeded or user already exists", function() {
+    const body = res.getBody();
+    const data = JSON.parse(body);
+    expect(data.redirect || (data.error && data.error.warning && data.error.warning.includes('already registered'))).to.be.true;
+  });
+}
+

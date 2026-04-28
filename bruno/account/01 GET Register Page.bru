@@ -1,0 +1,29 @@
+meta {
+  name: 01 GET Register Page
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/index.php
+  body: none
+  auth: none
+}
+
+params:query {
+  route: account/register
+  language: {{language}}
+}
+
+script:post-response {
+  // Extract register_token (CSRF) from the form action URL
+  const body = res.getBody();
+  const match = body.match(/route=account\/register\.save[^"]*register_token=([a-zA-Z0-9]+)/);
+  if (match) {
+    bru.setVar('register_token', match[1]);
+    console.log('Extracted register_token: ' + match[1]);
+  } else {
+    console.warn('register_token not found - check if already logged in');
+  }
+}
+

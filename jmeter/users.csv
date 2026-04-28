@@ -1,22 +1,3 @@
-email,password
-user01@testmail.com,Test@1234
-user02@testmail.com,Test@1234
-user03@testmail.com,Test@1234
-user04@testmail.com,Test@1234
-user05@testmail.com,Test@1234
-user06@testmail.com,Test@1234
-user07@testmail.com,Test@1234
-user08@testmail.com,Test@1234
-user09@testmail.com,Test@1234
-user10@testmail.com,Test@1234
-user11@testmail.com,Test@1234
-user12@testmail.com,Test@1234
-user13@testmail.com,Test@1234
-user14@testmail.com,Test@1234
-user15@testmail.com,Test@1234
-user16@testmail.com,Test@1234
-user17@testmail.com,Test@1234
-user18@testmail.com,Test@1234
-user19@testmail.com,Test@1234
-user20@testmail.com,Test@1234
+USER_EMAIL,USER_PASSWORD
+sergiu.xmas@gmail.com,opencard
 

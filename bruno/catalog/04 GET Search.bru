@@ -1,0 +1,18 @@
+meta {
+  name: 04 GET Search
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/index.php
+  body: none
+  auth: none
+}
+
+params:query {
+  route: product/search
+  language: {{language}}
+  search: {{searchQuery}}
+}
+

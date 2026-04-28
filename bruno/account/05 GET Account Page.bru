@@ -1,0 +1,24 @@
+meta {
+  name: 05 GET Account Page
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/index.php
+  body: none
+  auth: none
+}
+
+params:query {
+  route: account/account
+  language: {{language}}
+  customer_token: {{customer_token}}
+}
+
+tests {
+  test("Account page shows logged-in content", function() {
+    expect(res.getBody()).to.include('Edit your account information');
+  });
+}
+

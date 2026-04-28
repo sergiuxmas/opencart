@@ -1,0 +1,28 @@
+meta {
+  name: 03 GET Product List
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/admin/index.php
+  body: none
+  auth: none
+}
+
+params:query {
+  route: catalog/product.list
+  user_token: {{admin_user_token}}
+  language: {{language}}
+}
+
+script:post-response {
+  // Extract first product_id from the admin response
+  const body = res.getBody();
+  const match = body.match(/"product_id":"(\d+)"/);
+  if (match) {
+    bru.setVar('productId', match[1]);
+    console.log('Extracted productId: ' + match[1]);
+  }
+}
+

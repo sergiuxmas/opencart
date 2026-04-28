@@ -1,0 +1,24 @@
+{
+  "name": "local",
+  "variables": [
+    { "name": "baseUrl",           "value": "http://opencart.local:8080", "enabled": true, "secret": false },
+    { "name": "language",          "value": "en-gb",                      "enabled": true, "secret": false },
+    { "name": "email",             "value": "user01@testmail.com",         "enabled": true, "secret": false },
+    { "name": "password",          "value": "Test@1234",                   "enabled": true, "secret": true  },
+    { "name": "firstname",         "value": "Test",                        "enabled": true, "secret": false },
+    { "name": "lastname",          "value": "User",                        "enabled": true, "secret": false },
+    { "name": "telephone",         "value": "0712345678",                  "enabled": true, "secret": false },
+    { "name": "searchQuery",       "value": "MacBook",                     "enabled": true, "secret": false },
+    { "name": "categoryId",        "value": "",                            "enabled": true, "secret": false },
+    { "name": "productId",         "value": "",                            "enabled": true, "secret": false },
+    { "name": "register_token",    "value": "",                            "enabled": true, "secret": false },
+    { "name": "login_token",       "value": "",                            "enabled": true, "secret": false },
+    { "name": "customer_token",    "value": "",                            "enabled": true, "secret": false },
+    { "name": "adminUsername",     "value": "admin",                       "enabled": true, "secret": false },
+    { "name": "adminPassword",     "value": "admin",                       "enabled": true, "secret": true  },
+    { "name": "admin_login_token", "value": "",                            "enabled": true, "secret": false },
+    { "name": "admin_user_token",  "value": "",                            "enabled": true, "secret": false },
+    { "name": "customer_id",       "value": "",                            "enabled": true, "secret": false }
+  ]
+}
+

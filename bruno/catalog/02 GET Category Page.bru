@@ -1,0 +1,30 @@
+meta {
+  name: 02 GET Category Page
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/index.php
+  body: none
+  auth: none
+}
+
+params:query {
+  route: product/category
+  language: {{language}}
+  path: {{categoryId}}
+}
+
+script:post-response {
+  // Extract first product ID from the category listing
+  const body = res.getBody();
+  const match = body.match(/route=product\/product&amp;language=en-gb&amp;product_id=(\d+)/);
+  if (match) {
+    bru.setVar('productId', match[1]);
+    console.log('Extracted productId: ' + match[1]);
+  } else {
+    console.warn('productId not found in category page response');
+  }
+}
+

@@ -1,0 +1,29 @@
+meta {
+  name: 01 GET Home Page
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/index.php
+  body: none
+  auth: none
+}
+
+params:query {
+  route: common/home
+  language: {{language}}
+}
+
+script:post-response {
+  // Extract first top-level category ID from the navigation menu
+  const body = res.getBody();
+  const match = body.match(/product\/category&amp;language=en-gb&amp;path=(\d+)/);
+  if (match) {
+    bru.setVar('categoryId', match[1]);
+    console.log('Extracted categoryId: ' + match[1]);
+  } else {
+    console.warn('categoryId not found in home page response');
+  }
+}
+

@@ -1,0 +1,56 @@
+meta {
+  name: 04 POST Login
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/index.php
+  body: formUrlEncoded
+  auth: none
+}
+
+params:query {
+  route: account/login.login
+  language: {{language}}
+  login_token: {{login_token}}
+}
+
+body:form-urlencoded {
+  email: {{email}}
+  password: {{password}}
+}
+
+script:post-response {
+  // Response: {"redirect":"...&customer_token=...","customer":{...}} on success
+  //           {"error":{"warning":"Warning: No match..."}} on failure
+  const body = res.getBody();
+  try {
+    const data = JSON.parse(body);
+    if (data.redirect) {
+      const match = data.redirect.match(/customer_token=([a-zA-Z0-9]+)/);
+      if (match) {
+        bru.setVar('customer_token', match[1]);
+        console.log('Login successful. Extracted customer_token: ' + match[1]);
+      }
+    } else if (data.error) {
+      console.error('Login failed: ' + JSON.stringify(data.error));
+    }
+  } catch(e) {
+    console.error('Could not parse login response: ' + e.message);
+  }
+}
+
+tests {
+  test("Login returns redirect with customer_token", function() {
+    const data = JSON.parse(res.getBody());
+    expect(data).to.have.property('redirect');
+    expect(data.redirect).to.include('customer_token=');
+  });
+
+  test("No login error in response", function() {
+    const body = res.getBody();
+    expect(body).to.not.include('No match for E-Mail Address');
+  });
+}
+

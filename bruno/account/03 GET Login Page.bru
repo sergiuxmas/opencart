@@ -1,0 +1,29 @@
+meta {
+  name: 03 GET Login Page
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/index.php
+  body: none
+  auth: none
+}
+
+params:query {
+  route: account/login
+  language: {{language}}
+}
+
+script:post-response {
+  // Extract login_token (CSRF) from the form action URL
+  const body = res.getBody();
+  const match = body.match(/route=account\/login\.login[^"]*login_token=([a-zA-Z0-9]+)/);
+  if (match) {
+    bru.setVar('login_token', match[1]);
+    console.log('Extracted login_token: ' + match[1]);
+  } else {
+    console.warn('login_token not found - check if already logged in');
+  }
+}
+

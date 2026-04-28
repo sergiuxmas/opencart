@@ -1,0 +1,29 @@
+meta {
+  name: 06 GET Logout
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/index.php
+  body: none
+  auth: none
+}
+
+params:query {
+  route: account/logout
+  language: {{language}}
+}
+
+script:post-response {
+  // Clear customer_token after logout
+  bru.setVar('customer_token', '');
+  console.log('Logged out - customer_token cleared');
+}
+
+tests {
+  test("Logout page loaded successfully", function() {
+    expect(res.status).to.equal(200);
+  });
+}
+
