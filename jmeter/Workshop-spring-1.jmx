@@ -1969,7 +1969,7 @@ log.info(&quot;pageProductName = &quot; + vars.get(&quot;pageProductName&quot;))
                 <intProp name="Assertion.test_type">2</intProp>
               </ResponseAssertion>
               <hashTree/>
-              <BeanShellAssertion guiclass="BeanShellAssertionGui" testclass="BeanShellAssertion" testname="BeanShell Assertion">
+              <BeanShellAssertion guiclass="BeanShellAssertionGui" testclass="BeanShellAssertion" testname="BeanShell Assertion - cart count increased">
                 <stringProp name="BeanShellAssertion.query">log.info(&quot;cartCountBefore = &quot; + vars.get(&quot;cartCountBefore&quot;));
 log.info(&quot;cartCountAfter = &quot; + vars.get(&quot;cartCountAfter&quot;));
 
