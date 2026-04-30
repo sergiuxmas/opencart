@@ -206,6 +206,16 @@
             <stringProp name="Argument.value">cod.cod</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
+          <elementProp name="cartCountBefore" elementType="Argument">
+            <stringProp name="Argument.name">cartCountBefore</stringProp>
+            <stringProp name="Argument.value">0</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="cartCountAfter" elementType="Argument">
+            <stringProp name="Argument.name">cartCountAfter</stringProp>
+            <stringProp name="Argument.value">0</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
         </collectionProp>
       </Arguments>
       <hashTree/>
@@ -1816,6 +1826,43 @@ vars.put(&quot;cartQuantity&quot;, cartQuantity);</stringProp>
               <stringProp name="scriptLanguage">beanshell</stringProp>
             </JSR223PreProcessor>
             <hashTree/>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="HTTP Request - Extract cart count">
+              <stringProp name="HTTPSampler.path">/index.php</stringProp>
+              <boolProp name="HTTPSampler.auto_redirects">true</boolProp>
+              <stringProp name="HTTPSampler.method">GET</stringProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+                <collectionProp name="Arguments.arguments">
+                  <elementProp name="route" elementType="HTTPArgument">
+                    <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                    <stringProp name="Argument.value">common/cart.info</stringProp>
+                    <stringProp name="Argument.metadata">=</stringProp>
+                    <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                    <stringProp name="Argument.name">route</stringProp>
+                  </elementProp>
+                  <elementProp name="language" elementType="HTTPArgument">
+                    <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                    <stringProp name="Argument.value">${language}</stringProp>
+                    <stringProp name="Argument.metadata">=</stringProp>
+                    <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                    <stringProp name="Argument.name">language</stringProp>
+                  </elementProp>
+                </collectionProp>
+              </elementProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+              <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Regular Expression Extractor - cartCountBefore">
+                <stringProp name="RegexExtractor.useHeaders">false</stringProp>
+                <stringProp name="RegexExtractor.refname">cartCountBefore</stringProp>
+                <stringProp name="RegexExtractor.regex">([0-9]+)\s+item\(s\)\s*-</stringProp>
+                <stringProp name="RegexExtractor.template">$1$</stringProp>
+                <stringProp name="RegexExtractor.default">0</stringProp>
+                <boolProp name="RegexExtractor.default_empty_value">false</boolProp>
+                <stringProp name="RegexExtractor.match_number">1</stringProp>
+              </RegexExtractor>
+              <hashTree/>
+            </hashTree>
             <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="HTTP Request - Add product to cart">
               <stringProp name="HTTPSampler.path">/index.php?route=checkout/cart.add&amp;language=${language}</stringProp>
               <boolProp name="HTTPSampler.auto_redirects">true</boolProp>
@@ -1896,15 +1943,6 @@ log.info(&quot;pageProductName = &quot; + vars.get(&quot;pageProductName&quot;))
                 <stringProp name="Scope.variable">cartSuccessMessage</stringProp>
               </ResponseAssertion>
               <hashTree/>
-              <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="JSON Assertion - Contains success" enabled="false">
-                <stringProp name="JSON_PATH">$.success</stringProp>
-                <stringProp name="EXPECTED_VALUE">.*Success: You have added.*shopping cart.*</stringProp>
-                <boolProp name="JSONVALIDATION">true</boolProp>
-                <boolProp name="EXPECT_NULL">false</boolProp>
-                <boolProp name="INVERT">false</boolProp>
-                <boolProp name="ISREGEX">true</boolProp>
-              </JSONPathAssertion>
-              <hashTree/>
             </hashTree>
             <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="HTTP Request - check item is added to cart">
               <stringProp name="HTTPSampler.path">/index.php?route=checkout/cart&amp;language=${language}</stringProp>
@@ -1930,6 +1968,32 @@ log.info(&quot;pageProductName = &quot; + vars.get(&quot;pageProductName&quot;))
                 <boolProp name="Assertion.assume_success">false</boolProp>
                 <intProp name="Assertion.test_type">2</intProp>
               </ResponseAssertion>
+              <hashTree/>
+              <BeanShellAssertion guiclass="BeanShellAssertionGui" testclass="BeanShellAssertion" testname="BeanShell Assertion">
+                <stringProp name="BeanShellAssertion.query">log.info(&quot;cartCountBefore = &quot; + vars.get(&quot;cartCountBefore&quot;));
+log.info(&quot;cartCountAfter = &quot; + vars.get(&quot;cartCountAfter&quot;));
+
+Integer cartCountBefore = Integer.valueOf(vars.get(&quot;cartCountBefore&quot;));
+Integer cartCountAfter = Integer.valueOf(vars.get(&quot;cartCountAfter&quot;));
+
+if (!cartCountAfter &gt; cartCountBefore) {
+    Failure = true;
+    FailureMessage = &quot;Cart counter hasn&apos;t changed. Expected count &gt; &quot; + cartCountBefore + &quot;, but actual count=&quot; + cartCountAfter;
+}</stringProp>
+                <stringProp name="BeanShellAssertion.filename"></stringProp>
+                <stringProp name="BeanShellAssertion.parameters"></stringProp>
+                <boolProp name="BeanShellAssertion.resetInterpreter">false</boolProp>
+              </BeanShellAssertion>
+              <hashTree/>
+              <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Regular Expression Extractor - cartCountAfter">
+                <stringProp name="RegexExtractor.useHeaders">false</stringProp>
+                <stringProp name="RegexExtractor.refname">cartCountAfter</stringProp>
+                <stringProp name="RegexExtractor.regex">([0-9]+)\s+item\(s\)\s*-</stringProp>
+                <stringProp name="RegexExtractor.template">$1$</stringProp>
+                <stringProp name="RegexExtractor.default">CART_COUNT_AFTER_NOT_FOUND</stringProp>
+                <boolProp name="RegexExtractor.default_empty_value">false</boolProp>
+                <stringProp name="RegexExtractor.match_number">1</stringProp>
+              </RegexExtractor>
               <hashTree/>
             </hashTree>
           </hashTree>
