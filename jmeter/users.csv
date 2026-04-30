@@ -1,3 +1,6 @@
-USER_EMAIL,USER_PASSWORD
-sergiu.xmas@gmail.com,opencard
-
+USER_FIRST_NAME,USER_LAST_NAME,USER_EMAIL,USER_PASSWORD
+User1,Test1,opencart1@gmail.com,opencart1
+User2,Test2,opencart2@gmail.com,opencart2
+User3,Test3,opencart3@gmail.com,opencart3
+User4,Test4,opencart4@gmail.com,opencart4
+User5,Test5,opencart5@gmail.com,opencart5
