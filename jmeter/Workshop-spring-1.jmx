@@ -1907,7 +1907,7 @@ vars.put(&quot;cartQuantity&quot;, cartQuantity);</stringProp>
                 <stringProp name="ConstantTimer.delay">500</stringProp>
               </ConstantTimer>
               <hashTree/>
-              <BeanShellPostProcessor guiclass="TestBeanGUI" testclass="BeanShellPostProcessor" testname="BeanShell PostProcessor - Log response">
+              <BeanShellPostProcessor guiclass="TestBeanGUI" testclass="BeanShellPostProcessor" testname="BeanShell PostProcessor - Log response" enabled="false">
                 <stringProp name="filename"></stringProp>
                 <stringProp name="parameters"></stringProp>
                 <boolProp name="resetInterpreter">false</boolProp>
@@ -1969,17 +1969,149 @@ log.info(&quot;pageProductName = &quot; + vars.get(&quot;pageProductName&quot;))
                 <intProp name="Assertion.test_type">2</intProp>
               </ResponseAssertion>
               <hashTree/>
-              <BeanShellAssertion guiclass="BeanShellAssertionGui" testclass="BeanShellAssertion" testname="BeanShell Assertion - cart count increased">
-                <stringProp name="BeanShellAssertion.query">log.info(&quot;cartCountBefore = &quot; + vars.get(&quot;cartCountBefore&quot;));
-log.info(&quot;cartCountAfter = &quot; + vars.get(&quot;cartCountAfter&quot;));
+              <BeanShellAssertion guiclass="BeanShellAssertionGui" testclass="BeanShellAssertion" testname="BeanShell Assertion">
+                <stringProp name="BeanShellAssertion.query">import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
-Integer cartCountBefore = Integer.valueOf(vars.get(&quot;cartCountBefore&quot;));
-Integer cartCountAfter = Integer.valueOf(vars.get(&quot;cartCountAfter&quot;));
+String cartPageHtml = prev.getResponseDataAsString();
 
-if (!cartCountAfter &gt; cartCountBefore) {
+String cartPageProductId = vars.get(&quot;pageProductId&quot;);
+String cartPageProductName = vars.get(&quot;pageProductName&quot;);
+String cartPageProductCode = vars.get(&quot;pageProductCode&quot;);
+String cartPageUnitPriceAmount = vars.get(&quot;pageUnitPriceAmount&quot;);
+
+String expectedCartQuantity = vars.get(&quot;cartQuantity&quot;);
+
+if (expectedCartQuantity == null || expectedCartQuantity.trim().length() == 0) {
+    expectedCartQuantity = vars.get(&quot;minimumQuantity&quot;);
+}
+
+if (expectedCartQuantity == null || expectedCartQuantity.trim().length() == 0) {
+    expectedCartQuantity = &quot;1&quot;;
+}
+
+log.info(&quot;Validating selected product in cart page&quot;);
+log.info(&quot;cartPageProductId = &quot; + cartPageProductId);
+log.info(&quot;cartPageProductName = &quot; + cartPageProductName);
+log.info(&quot;cartPageProductCode = &quot; + cartPageProductCode);
+log.info(&quot;cartPageUnitPriceAmount = &quot; + cartPageUnitPriceAmount);
+log.info(&quot;expectedCartQuantity = &quot; + expectedCartQuantity);
+
+if (!cartPageHtml.contains(&quot;Shopping Cart&quot;)) {
     Failure = true;
-    FailureMessage = &quot;Cart counter hasn&apos;t changed. Expected count &gt; &quot; + cartCountBefore + &quot;, but actual count=&quot; + cartCountAfter;
-}</stringProp>
+    FailureMessage = &quot;Cart page is not loaded. Text &apos;Shopping Cart&apos; was not found.&quot;;
+    return;
+}
+
+if (cartPageProductId == null || cartPageProductId.trim().length() == 0) {
+    Failure = true;
+    FailureMessage = &quot;Variable pageProductId is missing or empty.&quot;;
+    return;
+}
+
+if (cartPageProductName == null || cartPageProductName.trim().length() == 0) {
+    Failure = true;
+    FailureMessage = &quot;Variable pageProductName is missing or empty.&quot;;
+    return;
+}
+
+if (cartPageProductCode == null || cartPageProductCode.trim().length() == 0) {
+    Failure = true;
+    FailureMessage = &quot;Variable pageProductCode is missing or empty.&quot;;
+    return;
+}
+
+if (cartPageUnitPriceAmount == null || cartPageUnitPriceAmount.trim().length() == 0) {
+    Failure = true;
+    FailureMessage = &quot;Variable pageUnitPriceAmount is missing or empty.&quot;;
+    return;
+}
+
+// Find the cart table row containing the selected product_id.
+String cartProductRowRegex = &quot;(?s)&lt;tr&gt;.*?product_id=&quot; 
+    + Pattern.quote(cartPageProductId) 
+    + &quot;.*?&lt;/tr&gt;&quot;;
+
+Pattern cartProductRowPattern = Pattern.compile(cartProductRowRegex);
+Matcher cartProductRowMatcher = cartProductRowPattern.matcher(cartPageHtml);
+
+if (!cartProductRowMatcher.find()) {
+    Failure = true;
+    FailureMessage = &quot;Selected product was not found in cart. Expected product_id=&quot;
+        + cartPageProductId
+        + &quot;, product name=&quot;
+        + cartPageProductName;
+    return;
+}
+
+String cartProductRowHtml = cartProductRowMatcher.group();
+
+log.info(&quot;cartProductRowHtml = &quot; + cartProductRowHtml);
+
+// Validate selected product name in same cart row.
+if (!cartProductRowHtml.contains(cartPageProductName)) {
+    Failure = true;
+    FailureMessage = &quot;Cart row does not contain selected product name. Expected=&quot;
+        + cartPageProductName
+        + &quot;. Product row=&quot;
+        + cartProductRowHtml;
+    return;
+}
+
+// Validate selected product code/model in same cart row.
+if (!cartProductRowHtml.contains(cartPageProductCode)) {
+    Failure = true;
+    FailureMessage = &quot;Cart row does not contain selected product code/model. Expected=&quot;
+        + cartPageProductCode
+        + &quot;. Product row=&quot;
+        + cartProductRowHtml;
+    return;
+}
+
+// Validate unit price in same cart row.
+if (!cartProductRowHtml.contains(cartPageUnitPriceAmount)) {
+    Failure = true;
+    FailureMessage = &quot;Cart row does not contain expected unit price. Expected=&quot;
+        + cartPageUnitPriceAmount
+        + &quot;. Product row=&quot;
+        + cartProductRowHtml;
+    return;
+}
+
+// Validate quantity in same cart row.
+// In common/cart.info dropdown, OpenCart renders quantity like:
+// &lt;td class=&quot;text-end text-nowrap&quot;&gt;x 1&lt;/td&gt;
+String quantityTextRegex = &quot;(?s).*&lt;td[^&gt;]*&gt;\\s*x\\s*&quot;
+    + Pattern.quote(expectedCartQuantity)
+    + &quot;\\s*&lt;/td&gt;.*&quot;;
+
+// In checkout/cart page, OpenCart may render quantity as input.
+// Keep this fallback for compatibility.
+String quantityInputNameBeforeValueRegex = &quot;(?s).*&lt;input[^&gt;]*name=[\&quot;&apos;]quantity[^\&quot;&apos;]*[\&quot;&apos;][^&gt;]*value=[\&quot;&apos;]\\s*&quot;
+    + Pattern.quote(expectedCartQuantity)
+    + &quot;\\s*[\&quot;&apos;][^&gt;]*&gt;.*&quot;;
+
+String quantityInputValueBeforeNameRegex = &quot;(?s).*&lt;input[^&gt;]*value=[\&quot;&apos;]\\s*&quot;
+    + Pattern.quote(expectedCartQuantity)
+    + &quot;\\s*[\&quot;&apos;][^&gt;]*name=[\&quot;&apos;]quantity[^\&quot;&apos;]*[\&quot;&apos;][^&gt;]*&gt;.*&quot;;
+
+if (!cartProductRowHtml.matches(quantityTextRegex)
+        &amp;&amp; !cartProductRowHtml.matches(quantityInputNameBeforeValueRegex)
+        &amp;&amp; !cartProductRowHtml.matches(quantityInputValueBeforeNameRegex)) {
+    Failure = true;
+    FailureMessage = &quot;Cart row does not contain expected quantity. Expected quantity=&quot;
+        + expectedCartQuantity
+        + &quot;. Product row=&quot;
+        + cartProductRowHtml;
+    return;
+}
+
+log.info(&quot;Cart validation passed for product_id=&quot;
+    + cartPageProductId
+    + &quot;, product name=&quot;
+    + cartPageProductName
+    + &quot;, quantity=&quot;
+    + expectedCartQuantity);</stringProp>
                 <stringProp name="BeanShellAssertion.filename"></stringProp>
                 <stringProp name="BeanShellAssertion.parameters"></stringProp>
                 <boolProp name="BeanShellAssertion.resetInterpreter">false</boolProp>
@@ -1994,6 +2126,32 @@ if (!cartCountAfter &gt; cartCountBefore) {
                 <boolProp name="RegexExtractor.default_empty_value">false</boolProp>
                 <stringProp name="RegexExtractor.match_number">1</stringProp>
               </RegexExtractor>
+              <hashTree/>
+              <BeanShellAssertion guiclass="BeanShellAssertionGui" testclass="BeanShellAssertion" testname="BeanShell Assertion - cart count increased">
+                <stringProp name="BeanShellAssertion.query">log.info(&quot;cartCountBefore = &quot; + vars.get(&quot;cartCountBefore&quot;));
+log.info(&quot;cartCountAfter = &quot; + vars.get(&quot;cartCountAfter&quot;));
+log.info(&quot;cartQuantity = &quot; + vars.get(&quot;cartQuantity&quot;));
+
+int cartCountBefore = Integer.parseInt(vars.get(&quot;cartCountBefore&quot;));
+int cartCountAfter = Integer.parseInt(vars.get(&quot;cartCountAfter&quot;));
+int cartQuantity = Integer.parseInt(vars.get(&quot;cartQuantity&quot;));
+
+int expectedCartCountAfter = cartCountBefore + cartQuantity;
+if (cartCountAfter != expectedCartCountAfter) {
+    Failure = true;
+    FailureMessage = &quot;Cart counter did not increase correctly. Before=&quot;
+        + cartCountBefore
+        + &quot;, quantity added=&quot;
+        + cartQuantity
+        + &quot;, expected after=&quot;
+        + expectedCartCountAfter
+        + &quot;, actual after=&quot;
+        + cartCountAfter;
+}</stringProp>
+                <stringProp name="BeanShellAssertion.filename"></stringProp>
+                <stringProp name="BeanShellAssertion.parameters"></stringProp>
+                <boolProp name="BeanShellAssertion.resetInterpreter">false</boolProp>
+              </BeanShellAssertion>
               <hashTree/>
             </hashTree>
           </hashTree>
